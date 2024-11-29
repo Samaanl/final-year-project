@@ -1,9 +1,9 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { DndContext } from "@dnd-kit/core";
 import { createSnapModifier } from "@dnd-kit/modifiers";
 import Drag from "./drag.jsx";
 import Drop from "./drop.jsx";
+import { LED } from "./components/LED.jsx"; // Import the LED component
 
 function Comb() {
   const [elements, setElements] = useState([]);
@@ -19,6 +19,7 @@ function Comb() {
     {
       id: "led",
       label: "LED",
+      component: <LED id="led-source" pos={{ x: 0, y: 0 }} />,
       position: { x: window.innerWidth - 130, y: 80 },
     },
     {
@@ -90,16 +91,29 @@ function Comb() {
         ))}
 
         {/* Dragged elements */}
-        {elements.map((element) => (
-          <Drag
-            key={element.id}
-            id={element.id}
-            pos={element.position}
-            dragStart={dragStart}
-          >
-            {element.label}
-          </Drag>
-        ))}
+        {elements.map((element) => {
+          // Conditionally render different components based on element type
+          if (element.type === "led") {
+            return (
+              <LED
+                key={element.id}
+                id={element.id}
+                pos={element.position}
+              />
+            );
+          }
+          // Handle other types of elements like motor, breadboard, etc.
+          return (
+            <Drag
+              key={element.id}
+              id={element.id}
+              pos={element.position}
+              dragStart={dragStart}
+            >
+              {element.label}
+            </Drag>
+          );
+        })}
       </Drop>
     </DndContext>
   );
