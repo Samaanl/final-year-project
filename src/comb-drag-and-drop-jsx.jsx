@@ -4,6 +4,7 @@ import { createSnapModifier } from "@dnd-kit/modifiers";
 import Drag from "./drag.jsx";
 import Drop from "./drop.jsx";
 import { LED } from "./components/LED.jsx"; // Import the LED component
+import { Resistor } from "./components/resistor.jsx"; // Import the Resistor component
 
 function Comb() {
   const [elements, setElements] = useState([]);
@@ -12,8 +13,8 @@ function Comb() {
   // Define source elements
   const sourceElements = [
     {
-      id: "motor",
-      label: "Motor",
+      id: "resistor",
+      label: "Resistor",
       position: { x: window.innerWidth - 130, y: 20 },
     },
     {
@@ -78,7 +79,7 @@ function Comb() {
       modifiers={[snapToGridModifier]}
     >
       <Drop>
-        {/* Source elements */}
+        {/* Source elements (Draggable items) */}
         {sourceElements.map((source) => (
           <Drag
             key={source.id}
@@ -90,7 +91,7 @@ function Comb() {
           </Drag>
         ))}
 
-        {/* Dragged elements */}
+        {/* Render dragged elements */}
         {elements.map((element) => {
           // Conditionally render different components based on element type
           if (element.type === "led") {
@@ -102,7 +103,16 @@ function Comb() {
               />
             );
           }
-          // Handle other types of elements like motor, breadboard, etc.
+          if (element.type === "resistor") {
+            return (
+              <Resistor
+                key={element.id}
+                id={element.id}
+                pos={element.position}
+              />
+            );
+          }
+          // Handle other types of elements (e.g., breadboard)
           return (
             <Drag
               key={element.id}
