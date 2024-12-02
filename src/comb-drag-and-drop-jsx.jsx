@@ -1,5 +1,4 @@
-import React, { useEffect } from "react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DndContext } from "@dnd-kit/core";
 import { createSnapModifier } from "@dnd-kit/modifiers";
 import Drag from "./drag.jsx";
@@ -10,13 +9,12 @@ function Comb() {
   const { currentState, saveState, undo, redo } = useUndoRedo();
   const [elements, setElements] = useState(currentState || []);
   const [dragStart, setDragStart] = useState(0);
+  const [selectedElementId, setSelectedElementId] = useState(null); // Tracks selected element
 
   useEffect(() => {
-    // Update `elements` whenever `currentState` changes
     setElements(currentState);
   }, [currentState]);
 
-  // Define source elements
   const sourceElements = [
     { id: "motor", label: "Motor", position: { x: window.innerWidth - 130, y: 20 } },
     { id: "led", label: "LED", position: { x: window.innerWidth - 130, y: 80 } },
@@ -35,7 +33,6 @@ function Comb() {
       let newElements;
 
       if (sourceElement) {
-        // Create new element when dragging from source
         newElements = [
           ...elements,
           {
@@ -49,7 +46,6 @@ function Comb() {
           },
         ];
       } else {
-        // Update position for existing elements
         newElements = elements.map((el) =>
           el.id === active.id
             ? {
@@ -64,8 +60,15 @@ function Comb() {
       }
 
       setElements(newElements);
-      saveState(newElements); // Save state only on new actions
+      saveState(newElements);
     }
+  };
+
+  const handleDelete = (id) => {
+    const updatedElements = elements.filter((el) => el.id !== id);
+    setElements(updatedElements);
+    saveState(updatedElements);
+    setSelectedElementId(null);
   };
 
   useEffect(() => {
@@ -85,16 +88,22 @@ function Comb() {
       modifiers={[snapToGridModifier]}
     >
       <Drop>
-        {/* Source elements */}
         {sourceElements.map((source) => (
           <Drag key={source.id} id={source.id} pos={source.position} dragStart={dragStart}>
             {source.label}
           </Drag>
         ))}
 
-        {/* Dragged elements */}
         {elements.map((element) => (
-          <Drag key={element.id} id={element.id} pos={element.position} dragStart={dragStart}>
+          <Drag
+            key={element.id}
+            id={element.id}
+            pos={element.position}
+            dragStart={dragStart}
+            isSelected={selectedElementId === element.id}
+            onSelect={() => setSelectedElementId(element.id)}
+            onDelete={() => handleDelete(element.id)}
+          >
             {element.label}
           </Drag>
         ))}
