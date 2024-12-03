@@ -5,6 +5,7 @@ import Drag from "./drag.jsx";
 import Drop from "./drop.jsx";
 import { LED } from "./components/LED.jsx"; // Import the LED component
 import { Resistor } from "./components/resistor.jsx"; // Import the Resistor component
+import { Breadboard } from "./components/breadboard.jsx";
 
 function Comb() {
   const [elements, setElements] = useState([]);
@@ -27,6 +28,11 @@ function Comb() {
       id: "breadboard",
       label: "Breadboard",
       position: { x: window.innerWidth - 130, y: 140 },
+    },
+    {
+      id: "aurdino-uno",
+      label: "Aurdino Uno",
+      position: { x: window.innerWidth - 130, y: 200 },
     },
   ];
 
@@ -106,6 +112,15 @@ function Comb() {
           if (element.type === "resistor") {
             return (
               <Resistor
+                key={element.id}
+                id={element.id}
+                pos={element.position}
+              />
+            );
+          }
+          if (element.type === "breadboard") {
+            return (
+              <Breadboard
                 key={element.id}
                 id={element.id}
                 pos={element.position}

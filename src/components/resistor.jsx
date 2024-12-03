@@ -15,7 +15,7 @@ export function Resistor(props) {
 
   const style = {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Adjust position
-    width:3
+    width: 3
   };
 
   return (
@@ -32,13 +32,13 @@ export function Resistor(props) {
         className="w-10 h-1 bg-gray-600"
         style={{
           position: "absolute",
-          left: `-${size.width / 2 + 10}px`, // Position the left lead horizontally
+          left: `-${size.width / 2 + 10}px`,
         }}
       />
       
       {/* Resistor Body */}
       <div
-        className="h-4 bg-yellow-400 rounded-md shadow-md flex items-center justify-center"
+        className="h-4 bg-neutral-800 rounded-md shadow-md flex items-center justify-center"
         style={{
           width: `${size.width}px`,
           height: `${size.height}px`,
@@ -46,19 +46,19 @@ export function Resistor(props) {
       >
         {/* Resistor Color Bands */}
         <div
-          className="w-4 h-full bg-brown rounded"
+          className="w-4 h-full bg-yellow-800 rounded"
           style={{ marginLeft: '10%' }}
         />
         <div
-          className="w-4 h-full bg-red rounded"
+          className="w-4 h-full bg-red-600 rounded"
           style={{ marginLeft: '20%' }}
         />
         <div
-          className="w-4 h-full bg-brown rounded"
+          className="w-4 h-full bg-yellow-800 rounded"
           style={{ marginLeft: '20%' }}
         />
         <div
-          className="w-4 h-full bg-gold rounded"
+          className="w-4 h-full bg-yellow-600 rounded"
           style={{ marginLeft: '20%' }}
         />
       </div>
@@ -68,9 +68,11 @@ export function Resistor(props) {
         className="w-10 h-1 bg-gray-600"
         style={{
           position: "absolute",
-          right: `-${size.width / 2 + 10}px`, // Position the right lead horizontally
+          right: `-${size.width / 2 + 10}px`,
         }}
       />
     </div>
   );
 }
+
+export default Resistor;
