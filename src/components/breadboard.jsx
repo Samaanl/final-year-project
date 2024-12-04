@@ -8,8 +8,8 @@ export function Breadboard(props) {
 
   const style = {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`,
-    width: "401px", // Reduced from 600px
-    height: "200px", // Reduced from 400px
+    width: "850px", // Adjusted width to fit 30 columns
+    height: "300px", // Adjusted height
     fontFamily: "Arial, sans-serif",
     backgroundColor: "#f4f4f4",
     display: "flex",
@@ -17,19 +17,19 @@ export function Breadboard(props) {
     alignItems: "center",
     position: "absolute",
     border: "2px solid #ccc",
-    borderRadius: "4px", // Reduced from 8px
-    boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)", // Reduced shadow
+    borderRadius: "4px",
+    boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
     touchAction: "none",
     cursor: "grab",
   };
 
-  const generateRailHoles = () => Array.from({ length: 8 }).map((_, index) => <span key={index} className="hole"></span>);
+  const generateRailHoles = () => Array.from({ length: 30 }).map((_, index) => <span key={index} className="hole"></span>);
   const generateStripRows = () => Array.from({ length: 8 }).map((_, rowIndex) => (
     <div key={rowIndex} className="row">
-      {Array.from({ length: 8 }).map((_, colIndex) => <span key={colIndex} className="hole"></span>)}
+      {Array.from({ length: 30 }).map((_, colIndex) => <span key={colIndex} className="hole"></span>)}
     </div>
   ));
-  const generateColumnLabels = () => Array.from({ length: 8 }).map((_, index) => <div key={index} className="column-label">{index + 1}</div>);
+  const generateColumnLabels = () => Array.from({ length: 30 }).map((_, index) => <div key={index} className="column-label">{index + 1}</div>);
 
   return (
     <div
@@ -46,7 +46,7 @@ export function Breadboard(props) {
           background-color: black;
           border-radius: 50%;
           display: inline-block;
-          margin: 1px;
+          margin: 4px;
         }
 
         .row {
@@ -55,7 +55,7 @@ export function Breadboard(props) {
         }
 
         .breadboard {
-          width: 401px;
+          width: 850px;
           background-color: #fff;
           border: 1px solid #ccc;
           display: flex;

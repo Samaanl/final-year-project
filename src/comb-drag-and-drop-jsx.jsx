@@ -6,6 +6,7 @@ import Drop from "./drop.jsx";
 import { LED } from "./components/LED.jsx"; // Import the LED component
 import { Resistor } from "./components/resistor.jsx"; // Import the Resistor component
 import { Breadboard } from "./components/breadboard.jsx";
+import { ArduinoUnoR3 } from "./components/aurdino_uno.jsx";
 
 function Comb() {
   const [elements, setElements] = useState([]);
@@ -121,6 +122,15 @@ function Comb() {
           if (element.type === "breadboard") {
             return (
               <Breadboard
+                key={element.id}
+                id={element.id}
+                pos={element.position}
+              />
+            );
+          }
+          if (element.type === "aurdino-uno") {
+            return (
+              <ArduinoUnoR3
                 key={element.id}
                 id={element.id}
                 pos={element.position}

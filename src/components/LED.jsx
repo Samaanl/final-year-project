@@ -28,7 +28,7 @@ export function LED(props) {
     >
       {/* LED Bulb Body */}
       <div
-        className="bg-green-600 rounded-t-full shadow-md"
+        className="bg-yellow-600 rounded-t-full shadow-md"
         style={{
           width: `${size.width}px`,
           height: `${size.height}px`,
