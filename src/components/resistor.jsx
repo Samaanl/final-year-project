@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Handle, Position } from '@xyflow/react';
 import { useDraggable } from "@dnd-kit/core";
 
 export function Resistor(props) {
@@ -27,6 +28,54 @@ export function Resistor(props) {
       onDragEnd={handleDragEnd}
       className="relative flex items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl"
     >
+      {/* Left Handle */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="left-target"
+        className="w-4 h-4 bg-blue-500 rounded-full"
+        style={{ 
+          left: `-${size.width / 2 + 15}px`, 
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }} 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Left} 
+        id="left-source"
+        className="w-4 h-4 bg-blue-500 rounded-full"
+        style={{ 
+          left: `-${size.width / 2 + 15}px`, 
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }} 
+      />
+
+      {/* Right Handle */}
+      <Handle 
+        type="target" 
+        position={Position.Right} 
+        id="right-target"
+        className="w-4 h-4 bg-red-500 rounded-full"
+        style={{ 
+          right: `-${size.width / 2 + 15}px`, 
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }} 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="right-source"
+        className="w-4 h-4 bg-red-500 rounded-full"
+        style={{ 
+          right: `-${size.width / 2 + 15}px`, 
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }} 
+      />
+
       {/* Left Lead */}
       <div
         className="w-10 h-1 bg-gray-600"

@@ -1,31 +1,62 @@
 import React, { useState } from "react";
-import { useDraggable } from "@dnd-kit/core";
+import { Handle, Position } from "@xyflow/react";
 
 export function LED(props) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: props.id,
-  });
-
-  const [size, setSize] = useState({ width: 48, height: 64 }); // Initial smaller size
-
-  // When the drag ends, reset the size to its original dimensions
-  const handleDragEnd = () => {
-    setSize({ width: 48, height: 64 }); // Reset size to original when dropped
-  };
+  const [size] = useState({ width: 48, height: 64 }); // Fixed size for the LED
 
   const style = {
-    transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Fix the transform syntax
+    transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Using props for position
   };
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      onDragEnd={handleDragEnd}
       className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
+      style={style}
     >
+      {/* Anode Handle (Positive Pin) */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="anode-target"
+        className="w-4 h-4 bg-red-500 rounded-full"
+        style={{
+          left: "-2px",
+          top: "116px",
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="anode-source"
+        className="w-4 h-4 bg-red-500 rounded-full"
+        style={{
+          left: "-2px",
+          top: "116px",
+        }}
+      />
+
+      {/* Cathode Handle (Negative Pin) */}
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="cathode-target"
+        className="w-4 h-4 bg-black rounded-full"
+        style={{
+          right: "-2px",
+          top: "100px",
+        }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="cathode-source"
+        className="w-4 h-4 bg-black rounded-full"
+        style={{
+          right: "-2px",
+          top: "100px",
+        }}
+      />
+
       {/* LED Bulb Body */}
       <div
         className="bg-yellow-600 rounded-t-full shadow-md"
@@ -40,6 +71,7 @@ export function LED(props) {
         className="absolute left-[-6px] w-2 h-14 bg-red-600 rounded-tl-lg"
         style={{
           bottom: -53, // Adjust this value to position the anode correctly
+          
         }}
       />
 
