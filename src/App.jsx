@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
   Controls,
   Background,
   useNodesState,
+  reconnectEdge,
   useEdgesState,
   addEdge,
 } from '@xyflow/react';
@@ -18,10 +19,29 @@ export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [idCounter, setIdCounter] = useState(1); // Unique ID counter for new nodes
-
+  const edgeReconnectSuccessful = useRef(true);
+  
+ 
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+ 
+  const onReconnect = useCallback((oldEdge, newConnection) => {
+    edgeReconnectSuccessful.current = true;
+    setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+  }, []);
+ 
+  const onReconnectEnd = useCallback((_, edge) => {
+    if (!edgeReconnectSuccessful.current) {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    }
+ 
+    edgeReconnectSuccessful.current = true;
+  }, []);
+ 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+    (params) => setEdges((els) => addEdge(params, els)),
+    [],
   );
 
   // Custom node type to ensure precise positioning
@@ -101,7 +121,15 @@ export default function App() {
           proOptions={{
             hideAttribution: true,
           }}
-        >
+          snapToGrid
+      onReconnect={onReconnect}
+      onReconnectStart={onReconnectStart}
+      onReconnectEnd={onReconnectEnd}
+      fitView
+      attributionPosition="top-right"
+      style={{ backgroundColor: "#F7F9FB" }}
+      >
+        
           <Controls />
           <MiniMap />
           <Background variant="dots" gap={12} size={1} />
