@@ -1,6 +1,6 @@
 {
-  "name": "test",
-  "productName": "test",
+  "name": "Offline-Cad",
+  "productName": "Offline-Cad",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".webpack/main",
