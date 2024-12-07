@@ -103,7 +103,7 @@ export default function App() {
           onClick={() => addNode(ArduinoUnoR3, 200, 150)}
           style={{ margin: '5px', padding: '5px 10px', cursor: 'pointer' }}
         >
-          Add Arduino Uno R3
+          Add Arduino Uno
         </button>
       </div>
 
