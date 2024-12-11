@@ -66,8 +66,9 @@ export default function App() {
   }, [selectedNode, deleteNode]);
 
   const CustomNode = ({ data, id }) => {
-    const handleClick = () => {
-      setSelectedNode(id); // Set the selected node on click
+    const handleClick = (e) => {
+      e.stopPropagation(); // Prevent click from affecting parent elements
+      setSelectedNode((prevSelectedNode) => (prevSelectedNode === id ? null : id)); // Toggle selection
     };
 
     return (
@@ -84,27 +85,27 @@ export default function App() {
         {data.component}
         {selectedNode === id && (
           <button
-          style={{
-            position: "absolute",
-            top: "-15px",
-            right: "-15px",
-            background: "red",
-            color: "white",
-            border: "none",
-            borderRadius: "50%",
-            width: "40px", // Increased size
-            height: "40px", // Increased size
-            cursor: "pointer",
-            fontSize: "18px", // Larger font size for the symbol
-            zIndex: 10,
-          }}
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering node selection
-            deleteNode(id);
-          }}
-        >
-          &times;
-        </button>
+            style={{
+              position: "absolute",
+              top: "-15px",
+              right: "-15px",
+              background: "red",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              cursor: "pointer",
+              fontSize: "18px",
+              zIndex: 10,
+            }}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering node selection
+              deleteNode(id);
+            }}
+          >
+            &times;
+          </button>
         )}
       </div>
     );
