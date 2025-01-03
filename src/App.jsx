@@ -175,26 +175,27 @@ export default function App() {
 
         {/* ReactFlow canvas */}
         <div style={{ flex: 1 }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={{
-              custom: CustomNode,
-            }}
-            proOptions={{
-              hideAttribution: true,
-            }}
-            snapToGrid
-            onReconnect={onReconnect}
-            onReconnectStart={onReconnectStart}
-            onReconnectEnd={onReconnectEnd}
-            fitView
-            attributionPosition="top-right"
-            style={{ backgroundColor: "#F7F9FB" }}
-          >
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={{
+            custom: CustomNode,
+          }}
+          onPaneClick={() => setSelectedNode(null)} // Deselect all nodes on background click
+          proOptions={{
+            hideAttribution: true,
+          }}
+          snapToGrid
+          onReconnect={onReconnect}
+          onReconnectStart={onReconnectStart}
+          onReconnectEnd={onReconnectEnd}
+          fitView
+          style={{ backgroundColor: "#F7F9FB" }}
+        >
+
             <Controls />
             <MiniMap />
             <Background variant="dots" gap={12} size={1} />

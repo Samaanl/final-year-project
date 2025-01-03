@@ -1,6 +1,9 @@
 import React from "react";
 import { Handle, Position } from "@xyflow/react";
+import PropTypes from 'prop-types';
 import '@xyflow/react/dist/style.css';
+import Tooltip from "./Tooltip.jsx";
+import "./Tooltip.css";
 
 export function Breadboard(props) {
   const style = {
@@ -17,6 +20,7 @@ export function Breadboard(props) {
     borderRadius: "4px",
     boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
     cursor: "pointer",
+    transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Using props for position
   };
 
   const generateRailHoles = (railType, section) =>
@@ -97,17 +101,25 @@ export function Breadboard(props) {
     ));
 
   return (
+    <Tooltip text="Breadboard: Used to prototype electronic circuits. Red rails (+) for positive voltage, blue rails (-) for ground. Middle section contains tie points for connecting components.">
     <div
+      className="breadboard"
       style={style}
-      className="transition-all duration-300 hover:shadow-xl"
     >
       <style>{`
         .hole {
           width: 4px;
           height: 4px;
-          background-color: none;
+          background-color: #333;
           border-radius: 50%;
           display: none;
+        }
+
+        .hole-container {
+          position: relative;
+          margin: 4px;
+          padding: 4px;
+          cursor: pointer;
         }
 
         .row {
@@ -254,7 +266,14 @@ export function Breadboard(props) {
         </div>
       </div>
     </div>
+    </Tooltip>
   );
 }
+Breadboard.propTypes = {
+  pos: PropTypes.shape({
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired
+  }).isRequired
+};
 
 export default Breadboard;

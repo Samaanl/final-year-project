@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Handle, Position } from "@xyflow/react";
+import Tooltip from "./Tooltip.jsx";
+import "./Tooltip.css";
 
 export function LED(props) {
   const [size] = useState({ width: 48, height: 64 }); // Fixed size for the LED
@@ -12,26 +14,22 @@ export function LED(props) {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        !showInput && // Only close if input is not already hidden
+        showInput && // Only close if input is visible
         inputRef.current && !inputRef.current.contains(event.target) &&
         bulbRef.current && !bulbRef.current.contains(event.target)
       ) {
-        // If user clicks outside and doesn't enter a new color, reset to yellow
-        if (!inputRef.current.value) { 
-          setColor("yellow"); 
-        }
         setShowInput(false);
       }
     };
-  
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showInput]); // Only re-run when showInput changes
 
-  const handleBodyClick = () => {
-    setShowInput(true); // Show the input field when the body is clicked
+  const handleClick = () => {
+    setShowInput(true); // Show the input field when the LED is clicked
   };
 
   const handleColorChange = (e) => {
@@ -47,10 +45,12 @@ export function LED(props) {
   };
 
   return (
+    <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
     <div
       className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
       style={style}
       ref={bulbRef} // Add reference to LED bulb body
+      onClick={handleClick} // Handle click event
     >
       {/* Anode Handle (Positive Pin) */}
       <Handle
@@ -98,7 +98,6 @@ export function LED(props) {
 
       {/* LED Bulb Body */}
       <div
-        onClick={handleBodyClick} // Trigger input field toggle on click
         className="rounded-t-full shadow-md"
         style={{
           width: `${size.width}px`,
@@ -143,5 +142,6 @@ export function LED(props) {
         }}
       />
     </div>
+    </Tooltip>
   );
 }

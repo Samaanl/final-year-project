@@ -1,6 +1,9 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Handle, Position } from "@xyflow/react";
+import Tooltip from "./Tooltip.jsx";
+import "./Tooltip.css";
+import PropTypes from 'prop-types';
 import '@xyflow/react/dist/style.css';
 
 export function ArduinoUnoR3(props) {
@@ -25,6 +28,7 @@ export function ArduinoUnoR3(props) {
         alignItems: "center",
         justifyContent: "center",
       }}
+      title={`Pin ${pinId}`} // Hover description for each pin
     >
       {/* Source Handle */}
       <Handle
@@ -113,6 +117,11 @@ export function ArduinoUnoR3(props) {
   ];
 
   return (
+  <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
+    <div
+      className="arduino-uno-r3"
+      style={style}
+    >
     <div
       ref={setNodeRef}
       style={style}
@@ -175,7 +184,16 @@ export function ArduinoUnoR3(props) {
         ))}
       </div>
     </div>
+    </div>
+  </Tooltip>  
   );
 }
+ArduinoUnoR3.propTypes = {
+  id: PropTypes.string.isRequired,
+  pos: PropTypes.shape({
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired
+  }).isRequired
+};
 
 export default ArduinoUnoR3;

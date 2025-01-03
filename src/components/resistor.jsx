@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { Handle, Position } from '@xyflow/react';
 import { useDraggable } from "@dnd-kit/core";
+import Tooltip from "./Tooltip.jsx";
+import "./Tooltip.css";
+import PropTypes from 'prop-types';
+
 
 export function Resistor(props) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const { attributes, listeners, setNodeRef} = useDraggable({
     id: props.id,
   });
 
-  const [size, setSize] = useState({ width: 120, height: 20 }); // Resistor dimensions
+  const [size] = useState({ width: 120, height: 20 }); // Resistor dimensions
 
   // When the drag ends, reset the size to its original dimensions
   const handleDragEnd = () => {
@@ -20,6 +24,11 @@ export function Resistor(props) {
   };
 
   return (
+    <Tooltip text="Resistor: An electronic component that limits current flow. Color bands indicate resistance value (Yellow-Red-Yellow-Gold = 47kΩ ±5%).">
+    <div
+      className="resistor"
+      style={style}
+    >
     <div
       ref={setNodeRef}
       style={style}
@@ -120,8 +129,18 @@ export function Resistor(props) {
           right: `-${size.width / 2 + 10}px`,
         }}
       />
+      </div>
     </div>
+    </Tooltip> 
   );
 }
+
+Resistor.propTypes = {
+  id: PropTypes.string.isRequired,
+  pos: PropTypes.shape({
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired
+  }).isRequired
+};
 
 export default Resistor;
