@@ -30,7 +30,7 @@ export function ArduinoUnoR3(props) {
       }}
       title={`Pin ${pinId}`} // Hover description for each pin
     >
-      {/* Source Handle */}
+      {/* Single Handle in the Center */} 
       <Handle
         type="source"
         position={Position.Right}
@@ -39,25 +39,22 @@ export function ArduinoUnoR3(props) {
         style={{
           position: "absolute",
           top: "50%",
-          left: "90%", // Inside the pin
+          left: "50%", // Center of the pin
           transform: "translate(-50%, -50%)",
         }}
       />
-
-      {/* Target Handle */}
       <Handle
         type="target"
-        position={Position.Left}
-        id={`handle-target-${pinId}`}
+        position={Position.Right}
+        id={`handle-source-${pinId}`}
         className="w-2 h-2 bg-black-500 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
-          left: "10%", // Inside the pin
+          left: "50%", // Center of the pin
           transform: "translate(-50%, -50%)",
         }}
       />
-
       {children}
     </div>
   );
