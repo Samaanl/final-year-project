@@ -5,6 +5,7 @@ import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 import PropTypes from 'prop-types';
 import '@xyflow/react/dist/style.css';
+import CustomHandle from './CustomHandle.jsx';
 
 export function ArduinoUnoR3(props) {
   const { attributes, listeners, setNodeRef } = useDraggable({
@@ -28,37 +29,38 @@ export function ArduinoUnoR3(props) {
         alignItems: "center",
         justifyContent: "center",
       }}
-      title={`Pin ${pinId}`} // Hover description for each pin
+      title={`Pin ${pinId}`}
     >
-      {/* Single Handle in the Center */} 
-      <Handle
+      {/* Single handle that can act as both source and target */}
+      <CustomHandle
         type="source"
         position={Position.Right}
         id={`handle-source-${pinId}`}
-        className="w-2 h-2 bg-black-500 rounded-full"
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
-          left: "50%", // Center of the pin
+          left: "50%",
           transform: "translate(-50%, -50%)",
+          zIndex: 1
         }}
       />
-      <Handle
+      <CustomHandle
         type="target"
         position={Position.Right}
-        id={`handle-source-${pinId}`}
-        className="w-2 h-2 bg-black-500 rounded-full"
+        id={`handle-target-${pinId}`}
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
-          left: "50%", // Center of the pin
+          left: "50%",
           transform: "translate(-50%, -50%)",
+          zIndex: 1
         }}
       />
       {children}
     </div>
   );
-
   // Pin configurations with 4px spacing
   const digitalPins = [
     { id: 0, top: 30, left: 260 },

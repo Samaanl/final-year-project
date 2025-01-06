@@ -15,6 +15,7 @@ import { Breadboard } from "./components/breadboard.jsx";
 import { ArduinoUnoR3 } from "./components/aurdino_uno.jsx";
 import "@xyflow/react/dist/style.css";
 
+
 export default function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
