@@ -46,102 +46,102 @@ export function LED(props) {
 
   return (
     <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
-    <div
-      className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
-      style={style}
-      ref={bulbRef} // Add reference to LED bulb body
-      onClick={handleClick} // Handle click event
-    >
-      {/* Anode Handle (Positive Pin) */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="anode-target"
-        className="w-4 h-4 bg-red-500 rounded-full"
-        style={{
-          left: "-2px",
-          top: "116px",
-        }}
-      />
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="anode-source"
-        className="w-4 h-4 bg-red-500 rounded-full"
-        style={{
-          left: "-2px",
-          top: "116px",
-        }}
-      />
-
-      {/* Cathode Handle (Negative Pin) */}
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="cathode-target"
-        className="w-4 h-4 bg-black rounded-full"
-        style={{
-          right: "-2px",
-          top: "100px",
-        }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="cathode-source"
-        className="w-4 h-4 bg-black rounded-full"
-        style={{
-          right: "-2px",
-          top: "100px",
-        }}
-      />
-
-      {/* LED Bulb Body */}
       <div
-        className="rounded-t-full shadow-md"
-        style={{
-          width: `${size.width}px`,
-          height: `${size.height}px`,
-          backgroundColor: color, // Use dynamic color
-          position: "relative", // Ensure the LED bulb is positioned relative
-          zIndex: 10, // Place the LED bulb in front of the pins
-        }}
-      />
-
-      {/* Input Field */}
-      {showInput && (
-        <input
-          ref={inputRef} // Add reference to input field
-          type="text"
-          autoFocus
-          placeholder="Enter color"
-          className="absolute w-24 p-1 text-center bg-white border border-gray-300 rounded shadow-md"
+        className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
+        style={style}
+        ref={bulbRef} // Add reference to LED bulb body
+        onClick={handleClick} // Handle click event
+      >
+        {/* Anode Handle (Positive Pin) */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="anode-target"
+          className="w-4 h-4 bg-red-500 rounded-full"
           style={{
-            top: `${size.height / 2 + 10}px`,
-            zIndex: 11
+            left: "-2px",
+            top: "116px",
           }}
-          onKeyDown={handleColorChange}
         />
-      )}
+        <Handle
+          type="source"
+          position={Position.Left}
+          id="anode-source"
+          className="w-4 h-4 bg-red-500 rounded-full"
+          style={{
+            left: "-2px",
+            top: "116px",
+          }}
+        />
 
-      {/* Positive Pin (Anode) */}
-      <div
-        className="absolute left-[-6px] w-2 h-14 bg-red-600 rounded-tl-lg"
-        style={{
-          bottom: -53, // Adjust this value to position the anode correctly
-          zIndex: 5, // Ensure the pin is behind the LED bulb
-        }}
-      />
+        {/* Cathode Handle (Negative Pin) */}
+        <Handle
+          type="target"
+          position={Position.Right}
+          id="cathode-target"
+          className="w-4 h-4 bg-black rounded-full"
+          style={{
+            right: "-2px",
+            top: "100px",
+          }}
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="cathode-source"
+          className="w-4 h-4 bg-black rounded-full"
+          style={{
+            right: "-2px",
+            top: "100px",
+          }}
+        />
 
-      {/* Negative Pin (Cathode) */}
-      <div
-        className="absolute right-[-6px] w-2 h-10 bg-black rounded-tr-lg"
-        style={{
-          bottom: `-${size.height / 2 + 7}px`, // Adjust this value to position the cathode correctly
-          zIndex: 5, // Ensure the pin is behind the LED bulb
-        }}
-      />
-    </div>
+        {/* LED Bulb Body */}
+        <div
+          className="rounded-t-full shadow-md"
+          style={{
+            width: `${size.width}px`,
+            height: `${size.height}px`,
+            backgroundColor: color, // Use dynamic color
+            position: "relative", // Ensure the LED bulb is positioned relative
+            zIndex: 10, // Place the LED bulb in front of the pins
+          }}
+        />
+
+        {/* Input Field */}
+        {showInput && (
+          <input
+            ref={inputRef} // Add reference to input field
+            type="text"
+            autoFocus
+            placeholder="Enter color"
+            className="absolute w-24 p-1 text-center bg-white border border-gray-300 rounded shadow-md"
+            style={{
+              top: `${size.height / 2 + 10}px`,
+              zIndex: 11
+            }}
+            onKeyDown={handleColorChange}
+          />
+        )}
+
+        {/* Positive Pin (Anode) */}
+        <div
+          className="absolute left-[-6px] w-2 h-14 bg-red-600 rounded-tl-lg"
+          style={{
+            bottom: -53, // Adjust this value to position the anode correctly
+            zIndex: 5, // Ensure the pin is behind the LED bulb
+          }}
+        />
+
+        {/* Negative Pin (Cathode) */}
+        <div
+          className="absolute right-[-6px] w-2 h-10 bg-black rounded-tr-lg"
+          style={{
+            bottom: `-${size.height / 2 + 7}px`, // Adjust this value to position the cathode correctly
+            zIndex: 5, // Ensure the pin is behind the LED bulb
+          }}
+        />
+      </div>
     </Tooltip>
   );
 }

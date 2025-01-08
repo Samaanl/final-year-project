@@ -50,6 +50,11 @@ export function Resistor(props) {
     }
   };
 
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    props.onDelete(props.id);
+  };
+
   const style = {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Adjust position
     width: 3,
@@ -211,6 +216,7 @@ Resistor.propTypes = {
     resistance: PropTypes.string,
   }),
   onResistorValueChange: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
 };
 
 export default Resistor;

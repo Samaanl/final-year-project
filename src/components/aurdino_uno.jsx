@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
@@ -16,6 +16,23 @@ export function ArduinoUnoR3(props) {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`,
     width: "503px",
   };
+
+  const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        !event.target.closest('.arduino-uno-r3')
+      ) {
+        // Remove the line that sets showDelete
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Only re-run when showDelete changes
 
   const PinNode = ({ children, top, left, width = 30, height = 30, className = "", pinId }) => (
     <div 
@@ -115,6 +132,8 @@ export function ArduinoUnoR3(props) {
     }))
   ];
 
+  if (isDeleted) return null; // Return null if the component is deleted
+
   return (
   <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
     <div
@@ -192,7 +211,7 @@ ArduinoUnoR3.propTypes = {
   pos: PropTypes.shape({
     x: PropTypes.number.isRequired,
     y: PropTypes.number.isRequired
-  }).isRequired
+  }).isRequired,
 };
 
 export default ArduinoUnoR3;

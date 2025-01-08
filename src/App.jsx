@@ -45,17 +45,13 @@ export default function App() {
     []
   );
 
-  const deleteNode = useCallback((nodeId) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-    setSelectedNode(null);
-  }, []);
-
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey && event.key.toLowerCase() === "d" && selectedNode) {
-        deleteNode(selectedNode);
         event.preventDefault();
+        setNodes((nds) => nds.filter((node) => node.id !== selectedNode));
+        setEdges((eds) => eds.filter((edge) => edge.source !== selectedNode && edge.target !== selectedNode));
+        setSelectedNode(null);
       }
     };
 
@@ -63,63 +59,89 @@ export default function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedNode, deleteNode]);
+  }, [selectedNode]);
 
-  const CustomNode = ({ data, id, onResistorValueChange }) => {
+  const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
+    const [showDelete, setShowDelete] = useState(false); // State to toggle delete button
+    const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
+
     const handleClick = (e) => {
       e.stopPropagation();
       setSelectedNode((prevSelectedNode) => (prevSelectedNode === id ? null : id));
+      // setShowDelete(true); // Remove this line to prevent showing the delete button when the node is clicked
     };
 
+    const handleDelete = (e) => {
+      e.stopPropagation();
+      setIsDeleted(true); // Hide the component
+      onDelete(id);
+    };
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (
+          showDelete && // Only close if delete button is visible
+          !event.target.closest('.react-flow__node')
+        ) {
+          setShowDelete(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [showDelete]); // Only re-run when showDelete changes
+
+    if (isDeleted) return null; // Return null if the component is deleted
+
     return (
-      <div onClick={handleClick}>
-        {React.cloneElement(data.component, { onClick: handleClick })}
+      <>
+        {React.cloneElement(data.component, { onClick: handleClick, style: { zIndex: 1 }, onDelete })}
         {selectedNode === id && (
           <>
-            <button
-              style={{
-                position: "absolute",
-                top: "-15px",
-                right: "-15px",
-                background: "red",
-                color: "white",
-                border: "none",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                cursor: "pointer",
-                fontSize: "18px",
-                zIndex: 10,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteNode(id);
-              }}
-            >
-              &times;
-            </button>
             {data.component.type === Resistor && (
-              <>
-                
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-25px",
-                    right: "30px",
-                    backgroundColor: "white",
-                    padding: "2px 5px",
-                    borderRadius: "3px",
-                    boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
-                    zIndex: 10,
-                  }}
-                >
-                  {data.resistance || 'N/A'} Ω
-                </div>
-              </>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "-25px",
+                  right: "30px",
+                  backgroundColor: "white",
+                  padding: "2px 5px",
+                  borderRadius: "3px",
+                  boxShadow: "0px 2px 5px rgba(0,0,0,0.1)",
+                  zIndex: 10,
+                }}
+              >
+                {data.resistance || 'N/A'} Ω
+              </div>
+            )}
+            {showDelete && (
+              <button
+                onClick={handleDelete}
+                style={{
+                  position: "absolute",
+                  top: "-25px",
+                  right: "5px",
+                  backgroundColor: "red",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "20px",
+                  height: "20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  zIndex: 10,
+                }}
+              >
+                x
+              </button>
             )}
           </>
         )}
-      </div>
+      </>
     );
   };
 
@@ -130,7 +152,7 @@ export default function App() {
       type: "custom",
       position,
       data: {
-        component: <Component id={`component-${idCounter}`} pos={position} />,
+        component: <Component id={`component-${idCounter}`} pos={position} onDelete={handleDeleteNode} />,
         width,
         height,
         ...initialData,
@@ -150,6 +172,11 @@ export default function App() {
       localStorage.setItem('resistorValues', JSON.stringify(updatedValues));
       return updatedValues;
     });
+  };
+
+  const handleDeleteNode = (id) => {
+    setNodes((nds) => nds.filter((node) => node.id !== id));
+    setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
   };
 
   useEffect(() => {
@@ -210,7 +237,7 @@ export default function App() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             nodeTypes={{
-              custom: (props) => <CustomNode {...props} onResistorValueChange={handleResistorValueChange} />,
+              custom: (props) => <CustomNode {...props} onResistorValueChange={handleResistorValueChange} onDelete={handleDeleteNode} />,
             }}
             onPaneClick={() => setSelectedNode(null)}
             proOptions={{

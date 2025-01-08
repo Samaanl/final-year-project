@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
 import { Handle, useHandleConnections } from '@xyflow/react';
 
-const CustomHandle = ({
+const BreadboardHandle = ({
   type,
   position,
   id,
   className,
-  nodeId,
   style,
   ...rest
 }) => {
@@ -49,4 +48,4 @@ const CustomHandle = ({
   );
 };
 
-export default CustomHandle;
+export default BreadboardHandle;
