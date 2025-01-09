@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 import PropTypes from 'prop-types';
 import '@xyflow/react/dist/style.css';
+import CustomHandle from './CustomHandle.jsx';
 
 export function ArduinoUnoR3(props) {
   const { attributes, listeners, setNodeRef } = useDraggable({
@@ -15,6 +16,23 @@ export function ArduinoUnoR3(props) {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`,
     width: "503px",
   };
+
+  const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        !event.target.closest('.arduino-uno-r3')
+      ) {
+        // Remove the line that sets showDelete
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Only re-run when showDelete changes
 
   const PinNode = ({ children, top, left, width = 30, height = 30, className = "", pinId }) => (
     <div 
@@ -28,40 +46,38 @@ export function ArduinoUnoR3(props) {
         alignItems: "center",
         justifyContent: "center",
       }}
-      title={`Pin ${pinId}`} // Hover description for each pin
+      title={`Pin ${pinId}`}
     >
-      {/* Source Handle */}
-      <Handle
+      {/* Single handle that can act as both source and target */}
+      <CustomHandle
         type="source"
         position={Position.Right}
         id={`handle-source-${pinId}`}
-        className="w-2 h-2 bg-black-500 rounded-full"
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
-          left: "90%", // Inside the pin
+          left: "50%",
           transform: "translate(-50%, -50%)",
+          zIndex: 1
         }}
       />
-
-      {/* Target Handle */}
-      <Handle
+      <CustomHandle
         type="target"
-        position={Position.Left}
+        position={Position.Right}
         id={`handle-target-${pinId}`}
-        className="w-2 h-2 bg-black-500 rounded-full"
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
-          left: "10%", // Inside the pin
+          left: "50%",
           transform: "translate(-50%, -50%)",
+          zIndex: 1
         }}
       />
-
       {children}
     </div>
   );
-
   // Pin configurations with 4px spacing
   const digitalPins = [
     { id: 0, top: 30, left: 260 },
@@ -115,6 +131,8 @@ export function ArduinoUnoR3(props) {
       label: pin.id
     }))
   ];
+
+  if (isDeleted) return null; // Return null if the component is deleted
 
   return (
   <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
@@ -193,7 +211,7 @@ ArduinoUnoR3.propTypes = {
   pos: PropTypes.shape({
     x: PropTypes.number.isRequired,
     y: PropTypes.number.isRequired
-  }).isRequired
+  }).isRequired,
 };
 
 export default ArduinoUnoR3;
