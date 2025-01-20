@@ -1,0 +1,49 @@
+.components-section {
+    width: 200px;
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for better visual separation */
+    border-radius: 10px; /* Add rounded corners */
+  }
+  
+  .components-header {
+    margin: 0;
+    padding: 10px 0;
+    font-size: 18px;
+    color: #003366;
+    border-bottom: 1px solid #ddd;
+    width: 100%;
+    text-align: center;
+    background-color: #e6e6e6; /* Add background color to header */
+    border-top-left-radius: 10px; /* Rounded corners for header */
+    border-top-right-radius: 10px; /* Rounded corners for header */
+  }
+  
+  .component-button {
+    margin: 10px 0;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #00509e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow to buttons */
+  }
+  
+  .component-button:hover {
+    background-color: #003366;
+  }
+  
+  .component-button svg {
+    margin-right: 5px; /* Add margin to icons */
+  }

@@ -5,7 +5,6 @@
 
     .tooltip-text {
     visibility: hidden;
-    width: 220px;
     background-color: #f0f0f0;
     color: #333;
     text-align: center;
@@ -13,7 +12,7 @@
     padding: 10px;
     position: absolute;
     z-index: 1;
-    bottom: 100%; /* Position above the element */
+    bottom: 0%; /* Position above the element */
     left: 50%;
     transform: translateX(-50%);
     opacity: 0;
@@ -22,6 +21,7 @@
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     border: 2px solid #ccc;
+    white-space: nowrap;
   }
   
   .tooltip-container:hover .tooltip-text {
