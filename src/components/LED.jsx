@@ -5,18 +5,23 @@ import "./Tooltip.css";
 
 export function LED(props) {
   const [size] = useState({ width: 48, height: 64 }); // Fixed size for the LED
-  const [color, setColor] = useState(localStorage.getItem('ledColor') || 'yellow');
+  const [color, setColor] = useState(
+    localStorage.getItem("ledColor") || "yellow"
+  );
   const [showInput, setShowInput] = useState(false); // Toggle input visibility
   const inputRef = useRef(null); // Reference for the input field
   const bulbRef = useRef(null); // Reference for the LED bulb body
+  const [brightness, setBrightness] = useState(props.brightness); // Default brightness
 
   // Effect to handle clicks outside the input or LED bulb body
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         showInput && // Only close if input is visible
-        inputRef.current && !inputRef.current.contains(event.target) &&
-        bulbRef.current && !bulbRef.current.contains(event.target)
+        inputRef.current &&
+        !inputRef.current.contains(event.target) &&
+        bulbRef.current &&
+        !bulbRef.current.contains(event.target)
       ) {
         setShowInput(false);
       }
@@ -34,7 +39,7 @@ export function LED(props) {
 
   const handleColorChange = (e) => {
     if (e.key === "Enter" && e.target.value) {
-      setColor(e.target.value); 
+      setColor(e.target.value);
       localStorage.setItem("ledColor", e.target.value); // Store in localStorage
       setShowInput(false);
     }
@@ -104,6 +109,9 @@ export function LED(props) {
             height: `${size.height}px`,
             backgroundColor: color, // Use dynamic color
             position: "relative", // Ensure the LED bulb is positioned relative
+            boxShadow: brightness
+              ? `0 0 ${60}px ${10}px ${color}`
+              : `0 0 ${0}px ${0}px`, // Dynamic shadow
             zIndex: 10, // Place the LED bulb in front of the pins
           }}
         />
@@ -118,7 +126,7 @@ export function LED(props) {
             className="absolute w-24 p-1 text-center bg-white border border-gray-300 rounded shadow-md"
             style={{
               top: `${size.height / 2 + 10}px`,
-              zIndex: 11
+              zIndex: 11,
             }}
             onKeyDown={handleColorChange}
           />
