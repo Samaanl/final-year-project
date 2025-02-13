@@ -3,21 +3,20 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-export function LED(props) {
+const LED = ({ id, pos, onDelete, brightness, ledStateRef }) => {
   const [size] = useState({ width: 48, height: 64 }); // Fixed size for the LED
-  const [color, setColor] = useState(
-    localStorage.getItem("ledColor") || "yellow"
-  );
+  const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false); // Toggle input visibility
   const inputRef = useRef(null); // Reference for the input field
   const bulbRef = useRef(null); // Reference for the LED bulb body
-  const [brightness, setBrightness] = useState(props.brightness); // Default brightness
+  const [brightnessState, setBrightness] = useState(brightness); // Default brightness
+  const [ledState, setLedState] = useState(ledStateRef.current);
 
   // Effect to handle clicks outside the input or LED bulb body
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        showInput && // Only close if input is visible
+        showInput &&
         inputRef.current &&
         !inputRef.current.contains(event.target) &&
         bulbRef.current &&
@@ -33,6 +32,14 @@ export function LED(props) {
     };
   }, [showInput]); // Only re-run when showInput changes
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLedState(ledStateRef.current);
+    }, 100); // Check for changes every 100ms
+
+    return () => clearInterval(interval);
+  }, [ledStateRef]);
+
   const handleClick = () => {
     setShowInput(true); // Show the input field when the LED is clicked
   };
@@ -40,13 +47,14 @@ export function LED(props) {
   const handleColorChange = (e) => {
     if (e.key === "Enter" && e.target.value) {
       setColor(e.target.value);
-      localStorage.setItem("ledColor", e.target.value); // Store in localStorage
+      localStorage.setItem(`ledColor-${id}`, e.target.value); // Store with unique key
       setShowInput(false);
     }
   };
 
   const style = {
-    transform: `translate(${props.pos.x}px, ${props.pos.y}px)`, // Using props for position
+    transform: `translate(${pos.x}px, ${pos.y}px)`, // Using props for position
+    boxShadow: ledState ? `0 0 60px 10px ${color}` : `0 0 0px 0px ${color}`, // Dynamic box-shadow
   };
 
   return (
@@ -107,13 +115,12 @@ export function LED(props) {
           style={{
             width: `${size.width}px`,
             height: `${size.height}px`,
-            backgroundColor: color, // Use dynamic color
-            position: "relative", // Ensure the LED bulb is positioned relative
-            boxShadow: brightness
-              ? `0 0 ${60}px ${10}px ${color}`
-              : `0 0 ${0}px ${0}px`, // Dynamic shadow
-            zIndex: 10, // Place the LED bulb in front of the pins
+            backgroundColor: color,
+            position: "relative",
+            zIndex: 10,
           }}
+          ref={bulbRef}
+          onClick={handleClick}
         />
 
         {/* Input Field */}
@@ -152,4 +159,6 @@ export function LED(props) {
       </div>
     </Tooltip>
   );
-}
+};
+
+export { LED };

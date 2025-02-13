@@ -126,10 +126,9 @@ void loop() {
 export default function App() {
   const [pages, setPages] = useState([]); // State to manage the list of pages
   const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
-  const [ledState13, setledState13] = useState(false);
+  const ledState13Ref = useRef(false); // Use useRef instead of useState
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
-  // const ledState13Ref = useRef(false);
 
   // Page component to handle each individual page
   const Page = ({ pageId, removePage }) => {
@@ -176,7 +175,6 @@ export default function App() {
 
     const addNode = (Component, width, height, initialData = {}) => {
       const position = { x: 100, y: 100 };
-      console.log("this component is", Component.name);
       const isLEDComponent = Component.name === "LED";
       const newNode = {
         id: `${idCounter}`,
@@ -188,7 +186,8 @@ export default function App() {
               id={`component-${idCounter}`}
               pos={position}
               onDelete={handleDeleteNode}
-              {...(isLEDComponent && { brightness: ledState13 })}
+              {...(isLEDComponent && { brightness: ledState13Ref.current })}
+              {...(isLEDComponent && { ledStateRef: ledState13Ref })}
             />
           ),
           width,
@@ -365,7 +364,7 @@ export default function App() {
     portB.addListener(() => {
       const turnon = portB.pinState(5) === PinState.High;
       console.log("LED on pin 13 is", turnon);
-      setledState13(turnon);
+      ledState13Ref.current = turnon;
     });
 
     // Add a manual state check to verify port state directly
