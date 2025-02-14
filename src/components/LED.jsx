@@ -45,16 +45,19 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef }) => {
   };
 
   const handleColorChange = (e) => {
-    if (e.key === "Enter" && e.target.value) {
-      setColor(e.target.value);
-      localStorage.setItem(`ledColor-${id}`, e.target.value); // Store with unique key
+    setColor(e.target.value);
+    localStorage.setItem(`ledColor-${id}`, e.target.value); // Store with unique key
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
       setShowInput(false);
     }
   };
 
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`, // Using props for position
-    boxShadow: ledState ? `0 0 60px 10px ${color}` : `0 0 0px 0px ${color}`, // Dynamic box-shadow
+    boxShadow: ledState ? `0 0 64px 21px ${color}` : `0 0 0px 0px ${color}`, // Dynamic box-shadow
   };
 
   return (
@@ -123,19 +126,21 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef }) => {
           onClick={handleClick}
         />
 
-        {/* Input Field */}
+        {/* Color Picker */}
         {showInput && (
           <input
             ref={inputRef} // Add reference to input field
-            type="text"
+            type="color"
             autoFocus
-            placeholder="Enter color"
-            className="absolute w-24 p-1 text-center bg-white border border-gray-300 rounded shadow-md"
+            value={color}
+            className="absolute w-24 p-0.5 text-center bg-white border border-gray-300 rounded shadow-md"
             style={{
               top: `${size.height / 2 + 10}px`,
               zIndex: 11,
+              height: '24px' // Set a smaller height for the input field
             }}
-            onKeyDown={handleColorChange}
+            onChange={handleColorChange}
+            onKeyDown={handleKeyDown}
           />
         )}
 
