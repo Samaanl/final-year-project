@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("node:path");
+const server = require("../src/server"); // Import your server file
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -13,6 +14,9 @@ const createWindow = () => {
     height: 600,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      contextIsolation: false,
+      enableRemoteModule: true,
+      webSecurity: false, // Disable CSP
     },
     autoHideMenuBar: true,
   });
@@ -22,7 +26,24 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  // Modify the CSP headers
+  mainWindow.webContents.session.webRequest.onHeadersReceived(
+    (details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Content-Security-Policy": [
+            "default-src * 'unsafe-inline' 'unsafe-eval' data:;",
+          ],
+        },
+      });
+    }
+  );
 };
+
+// Start the server
+server.start();
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

@@ -1,0 +1,9 @@
+{
+  "additionalFiles": "",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "build.warn_data_percentage=75",
+  "fqbn": "arduino:avr:uno",
+  "hardwareFolders": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\ACER\\Documents\\Arduino\\libraries",
+  "sketchLocation": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch"
+}
