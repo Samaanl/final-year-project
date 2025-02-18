@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Drawer } from "flowbite-react";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
+import Editor from "@monaco-editor/react";
 import {
   avrInstruction,
   AVRIOPort,
@@ -40,6 +41,7 @@ import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
+import { arduinoLanguageConfig } from "./editorSyntax.js";
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -122,6 +124,39 @@ void loop() {
   delay(1000);                      
 }
   `;
+
+const beforeMount = (monaco) => {
+  monaco.languages.register({ id: "arduino" });
+  monaco.languages.setLanguageConfiguration("arduino", {
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" },
+      { open: '"', close: '"' },
+      { open: "'", close: "'" },
+    ],
+  });
+
+  monaco.languages.registerCompletionItemProvider("arduino", {
+    provideCompletionItems: () => {
+      const suggestions = [
+        ...arduinoLanguageConfig.keywords.map((keyword) => ({
+          label: keyword,
+          kind: monaco.languages.CompletionItemKind.Keyword,
+          insertText: keyword,
+        })),
+        ...arduinoLanguageConfig.functions,
+      ];
+      return { suggestions };
+    },
+  });
+};
+
 // Main App component
 export default function App() {
   const [pages, setPages] = useState([]); // State to manage the list of pages
@@ -129,6 +164,10 @@ export default function App() {
   const ledState13Ref = useRef(false); // Use useRef instead of useState
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
+
+  // Add this state near your other state declarations
+  const [isRunning, setIsRunning] = useState(false);
+  const cpuLoopRef = useRef(null);
 
   // Page component to handle each individual page
   const Page = ({ pageId, removePage }) => {
@@ -326,6 +365,13 @@ export default function App() {
   }, [handleNewPageClick]);
 
   const RunCode = async () => {
+    // // If it's running, clicking the button will stop it
+    // if (isRunning) {
+    //   setIsRunning(false);
+    //   return;
+    // }
+    // setIsRunning(true);
+
     //compile the source code to arduino redable hex
     const response = await fetch("http://localhost:3512/compile", {
       method: "POST",
@@ -383,6 +429,7 @@ export default function App() {
   };
 
   console.log(`the hex is ${resultOfHex}`);
+  console.log("is running", isRunning);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <div className="toolbar">
@@ -439,13 +486,42 @@ export default function App() {
             {/* Render the Page component */}
           </TabPanel>
         ))}
-        <textarea
+        {/* <textarea
           rows={30}
           style={{ width: "100%" }}
           value={defaultCode}
           onChange={(e) => setDefaultCode(e.target.value)}
-        ></textarea>
-        <button onClick={RunCode}>RUN</button>
+        ></textarea> */}
+        {/* <Editor language="jsx" value={defaultCode} onUpdate={setDefaultCode} /> */}
+        <Editor
+          height="50vh"
+          defaultLanguage="cpp"
+          defaultValue={defaultCode}
+          theme="vs-dark"
+          onChange={(value) => setDefaultCode(value)}
+          beforeMount={beforeMount}
+          options={{
+            minimap: { enabled: true },
+            fontSize: 14,
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: true,
+            snippetSuggestions: "inline",
+          }}
+        />
+        {/* <button onClick={() => RunCode()}>RUN</button> */}
+        <button
+          onClick={() => RunCode()}
+          style={{
+            backgroundColor: isRunning ? "#ff4444" : "#4CAF50",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          {isRunning ? "STOP" : "RUN"}
+        </button>
       </Tabs>
     </div>
   );

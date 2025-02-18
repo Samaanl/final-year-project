@@ -43,6 +43,7 @@
   "dependencies": {
     "@dnd-kit/core": "^6.2.0",
     "@dnd-kit/modifiers": "^8.0.0",
+    "@monaco-editor/react": "^4.7.0",
     "@reactflow/core": "^11.11.4",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.7",

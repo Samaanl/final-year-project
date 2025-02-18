@@ -3,9 +3,9 @@ import { useDraggable } from "@dnd-kit/core";
 import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
-import PropTypes from 'prop-types';
-import '@xyflow/react/dist/style.css';
-import CustomHandle from './CustomHandle.jsx';
+import PropTypes from "prop-types";
+import "@xyflow/react/dist/style.css";
+import CustomHandle from "./CustomHandle.jsx";
 
 export function ArduinoUnoR3(props) {
   const { attributes, listeners, setNodeRef } = useDraggable({
@@ -21,9 +21,7 @@ export function ArduinoUnoR3(props) {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        !event.target.closest('.arduino-uno-r3')
-      ) {
+      if (!event.target.closest(".arduino-uno-r3")) {
         // Remove the line that sets showDelete
       }
     };
@@ -34,8 +32,16 @@ export function ArduinoUnoR3(props) {
     };
   }, []); // Only re-run when showDelete changes
 
-  const PinNode = ({ children, top, left, width = 30, height = 30, className = "", pinId }) => (
-    <div 
+  const PinNode = ({
+    children,
+    top,
+    left,
+    width = 30,
+    height = 30,
+    className = "",
+    pinId,
+  }) => (
+    <div
       className={`absolute bg-[#f8f8f8] text-black border-black border-2 rounded-full flex justify-center items-center font-bold cursor-pointer ${className}`}
       style={{
         top: `${top}px`,
@@ -59,7 +65,7 @@ export function ArduinoUnoR3(props) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          zIndex: 1
+          zIndex: 1,
         }}
       />
       <CustomHandle
@@ -72,7 +78,7 @@ export function ArduinoUnoR3(props) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          zIndex: 1
+          zIndex: 1,
         }}
       />
       {children}
@@ -115,102 +121,102 @@ export function ArduinoUnoR3(props) {
 
   // Combine all pins
   const allPins = [
-    ...digitalPins.map(pin => ({
+    ...digitalPins.map((pin) => ({
       ...pin,
-      type: 'digital',
-      label: pin.id.toString()
+      type: "digital",
+      label: pin.id.toString(),
     })),
-    ...powerPins.map(pin => ({
+    ...powerPins.map((pin) => ({
       ...pin,
-      type: 'power',
-      label: pin.id
+      type: "power",
+      label: pin.id,
     })),
-    ...analogPins.map(pin => ({
+    ...analogPins.map((pin) => ({
       ...pin,
-      type: 'analog',
-      label: pin.id
-    }))
+      type: "analog",
+      label: pin.id,
+    })),
   ];
 
   if (isDeleted) return null; // Return null if the component is deleted
 
   return (
-  <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
-    <div
-      className="arduino-uno-r3"
-      style={style}
-    >
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className="relative cursor-pointer transition-all duration-300 hover:shadow-2xl"
-    >
-      <style>{`
+    <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
+      <div className="arduino-uno-r3" style={style}>
+        <div
+          ref={setNodeRef}
+          style={style}
+          {...listeners}
+          {...attributes}
+          className="relative cursor-pointer transition-all duration-300 hover:shadow-2xl"
+        >
+          <style>{`
         .react-flow__node {
           z-index: -1 !important;
         }
       `}</style>
-      <div id="board" className="relative w-[503px] h-[281px] bg-[#007acc] rounded-lg shadow-lg">
-        {/* USB Connector */}
-        <div className="absolute top-[20px] left-[20px] w-[80px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
-          USB
-        </div>
-
-        {/* Power Jack */}
-        <div className="absolute top-[20px] left-[120px] w-[60px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
-          Power
-        </div>
-
-        {/* Reset Button */}
-        <div className="absolute top-[60px] left-[60px] w-[37px] h-[30px] bg-[#232222] text-white flex justify-center items-center">
-          Reset
-        </div>
-
-        {/* ICSP Header */}
-        <div className="absolute top-[130px] left-[90px] w-[50px] h-[30px] bg-[#232222] text-white flex justify-center items-center">
-          ICSP
-        </div>
-
-        {/* Microcontroller */}
-        <div className="absolute top-[120px] left-[250px] w-[93px] h-[50px] bg-[#232222] text-white flex justify-center items-center">
-          ATmega328P
-        </div>
-
-        {/* LEDs */}
-        <div className="absolute top-[60px] left-[200px] w-[15px] h-[15px] bg-red-500"></div>
-        <div className="absolute top-[60px] left-[220px] w-[15px] h-[15px] bg-green-500"></div>
-        <div className="absolute top-[60px] left-[240px] w-[15px] h-[15px] bg-green-500"></div>
-
-        {/* Crystal Oscillator */}
-        <div className="absolute top-[160px] left-[150px] w-[57px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
-          16 MHz
-        </div>
-
-        {/* Render Nodes for All Pins */}
-        {allPins.map((pin) => (
-          <PinNode 
-            key={`pin-${pin.type}-${pin.label}`} 
-            top={pin.top} 
-            left={pin.left} 
-            className={pin.type === 'power' ? "text-xs" : ""} 
-            pinId={`${pin.type}-${pin.label}`}
+          <div
+            id="board"
+            className="relative w-[503px] h-[281px] bg-[#007acc] rounded-lg shadow-lg"
           >
-            {pin.label}
-          </PinNode>
-        ))}
+            {/* USB Connector */}
+            <div className="absolute top-[20px] left-[20px] w-[80px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
+              USB
+            </div>
+
+            {/* Power Jack */}
+            <div className="absolute top-[20px] left-[120px] w-[60px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
+              Power
+            </div>
+
+            {/* Reset Button */}
+            <div className="absolute top-[60px] left-[60px] w-[37px] h-[30px] bg-[#232222] text-white flex justify-center items-center">
+              Reset
+            </div>
+
+            {/* ICSP Header */}
+            <div className="absolute top-[130px] left-[90px] w-[50px] h-[30px] bg-[#232222] text-white flex justify-center items-center">
+              ICSP
+            </div>
+
+            {/* Microcontroller */}
+            <div className="absolute top-[120px] left-[250px] w-[93px] h-[50px] bg-[#232222] text-white flex justify-center items-center">
+              ATmega328P
+            </div>
+
+            {/* LEDs */}
+            <div className="absolute top-[60px] left-[200px] w-[15px] h-[15px] bg-red-500"></div>
+            <div className="absolute top-[60px] left-[220px] w-[15px] h-[15px] bg-green-500"></div>
+            <div className="absolute top-[60px] left-[240px] w-[15px] h-[15px] bg-green-500"></div>
+
+            {/* Crystal Oscillator */}
+            <div className="absolute top-[160px] left-[150px] w-[57px] h-[20px] bg-[#232222] text-white flex justify-center items-center">
+              16 MHz
+            </div>
+
+            {/* Render Nodes for All Pins */}
+            {allPins.map((pin) => (
+              <PinNode
+                key={`pin-${pin.type}-${pin.label}`}
+                top={pin.top}
+                left={pin.left}
+                className={pin.type === "power" ? "text-xs" : ""}
+                pinId={`${pin.type}-${pin.label}`}
+              >
+                {pin.label}
+              </PinNode>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-    </div>
-  </Tooltip>  
+    </Tooltip>
   );
 }
 ArduinoUnoR3.propTypes = {
   id: PropTypes.string.isRequired,
   pos: PropTypes.shape({
     x: PropTypes.number.isRequired,
-    y: PropTypes.number.isRequired
+    y: PropTypes.number.isRequired,
   }).isRequired,
 };
 
