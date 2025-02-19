@@ -165,6 +165,8 @@ export default function App() {
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
 
+  const [fetchData, setfetchData] = useState([]);
+
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
@@ -177,6 +179,8 @@ export default function App() {
     const [selectedNode, setSelectedNode] = useState(null);
     const edgeReconnectSuccessful = useRef(true);
     const [resistorValues, setResistorValues] = useState({});
+
+    const getActiveNodesCount = () => nodes.length;
 
     const onReconnectStart = useCallback(() => {
       edgeReconnectSuccessful.current = false;
@@ -212,8 +216,8 @@ export default function App() {
       setResistorValues(storedValues);
     }, []);
 
-    const addNode = (Component, width, height, initialData = {}) => {
-      const position = { x: 100, y: 100 };
+    const addNode = (Component, width, height,pos, initialData = {}) => {
+      const position = { x: pos.x, y: pos.y };
       const isLEDComponent = Component.name === "LED";
       const newNode = {
         id: `${idCounter}`,
@@ -240,6 +244,7 @@ export default function App() {
       };
       setNodes((nds) => [...nds, newNode]);
       setIdCounter((prev) => prev + 1);
+   
     };
 
     const handleResistorValueChange = (id, value) => {
@@ -249,42 +254,78 @@ export default function App() {
         return updatedValues;
       });
     };
+    function autoled(data){
+      switch (data.name) {
+        case "LED":
+          addNode(LED, 100, 100,{ x: 100, y: 20 })
+          break;
+          case "Resistor":
+          addNode(Resistor, 100, 50,{ x: 100, y: 20 })
+          break;
+          default:
+          addNode(Breadboard, 100, 100,{ x: 100, y: 20 })
+      }
+    
+    }
 
+    
+
+    useEffect(() => {
+      if (nodes.length === 0) {  // Ensures it runs only if no nodes exist
+        fetch('http://127.0.0.1:3512/getData')
+          .then(res => res.json())
+          .then(data => {
+            // setfetchData(data.data);
+            // autoled();
+            console.log("autoled i have fetched data from db",data.data);
+            autoled(data.data[0]);
+          });
+        // console.log("autoled i have fetched data from db");
+        
+      }
+    }, []);
+
+    // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
         <div className="components-section">
           <h3 className="components-header">Components</h3>
           <button
-            onClick={() => addNode(LED, 100, 100)}
+            onClick={() => addNode(LED, 100, 100,{ x: 100, y: 100 })}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
             Add LED
           </button>
           <button
-            onClick={() => addNode(Resistor, 100, 50, { resistance: "" })}
+            onClick={() => addNode(Resistor, 100, 50,{ x: 100, y: 100 }, { resistance: "" })}
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Resistor
           </button>
           <button
-            onClick={() => addNode(Breadboard, 1000, 250)}
+            onClick={() => addNode(Breadboard, 1000, 250,{ x: 100, y: 100 })}
             className="component-button"
           >
             <FaBreadSlice style={{ marginRight: "5px" }} />
             Add Breadboard
           </button>
           <button
-            onClick={() => addNode(ArduinoUnoR3, 200, 150)}
+            onClick={() => addNode(ArduinoUnoR3, 200, 150,{ x: 100, y: 100 })}
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Arduino Uno
           </button>
+          {
+          
+          // autoled()
+          }
         </div>
 
         <div style={{ flex: 1 }}>
+        <p>Active Nodes: {getActiveNodesCount()}</p>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -294,9 +335,9 @@ export default function App() {
             nodeTypes={{
               custom: (props) => (
                 <CustomNode
-                  {...props}
-                  onResistorValueChange={handleResistorValueChange}
-                  onDelete={handleDeleteNode}
+                {...props}
+                onResistorValueChange={handleResistorValueChange}
+                onDelete={handleDeleteNode}
                 />
               ),
             }}

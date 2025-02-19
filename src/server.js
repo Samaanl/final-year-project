@@ -1,5 +1,5 @@
 import express from "express";
-
+import sqlite3 from 'sqlite3';
 //new added starts
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -13,6 +13,30 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = 3512;
+
+//initialising database
+const dbPath = path.join(__dirname, 'database.sqlite');
+const dbExists = fs.existsSync(dbPath);
+const db = new sqlite3.Database(dbPath);
+
+if (!dbExists) {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+    x TEXT NOT NULL,
+    y TEXT NOT NULL
+    )
+  `;
+
+  db.run(createTableQuery, (err) => {
+    if (err) {
+      console.error("Error creating table:", err.message);
+    } else {
+      console.log("Table created successfully");
+    }
+  });
+}
 
 app.use(bodyParser.json());
 app.use(cors()); // Enable Cross-Origin Resource Sharing
@@ -33,6 +57,41 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.json({ message: "hello this is from a server to desktop app" });
 });
+
+app.get("/getData", (req, res) => {
+  const selectQuery = `
+    SELECT name, x, y FROM users
+  `;
+
+  db.all(selectQuery, (err, rows) => {
+    if (err) {
+      console.error("Error fetching data:", err.message);
+      res.status(500).json({ error: "Failed to fetch data" });
+      return;
+    }
+
+    res.json({ data: rows });
+  });
+});
+
+
+app.get("/insert", (req, res) => {
+  const insertQuery = `
+      INSERT INTO users (name, x, y)
+      VALUES ('Resistor', '10', '20')
+    `;
+
+  db.run(insertQuery, (err) => {
+    if (err) {
+      console.error("Error creating table:", err.message);
+      res.status(500).json({ error: "Failed to create table" });
+      return;
+    }
+
+    res.json({ message: `Table created successfully at ${ __dirname}` });
+  });
+});
+
 
 app.get("/say", (req, res) => {
   res.json({ message: "damn sayyyyy" });

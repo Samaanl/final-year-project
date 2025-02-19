@@ -1,10 +1,10 @@
 #include <Arduino.h>
-#line 1 "C:\\Users\\samaa\\Desktop\\final year project\\test project\\back to real proj one\\final-year-project\\src\\temp\\sketch\\sketch.ino"
-#line 1 "C:\\Users\\samaa\\Desktop\\final year project\\test project\\back to real proj one\\final-year-project\\src\\temp\\sketch\\sketch.ino"
+#line 1 "C:\\Users\\DEXsh\\OneDrive\\Desktop\\project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
+#line 1 "C:\\Users\\DEXsh\\OneDrive\\Desktop\\project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup();
-#line 5 "C:\\Users\\samaa\\Desktop\\final year project\\test project\\back to real proj one\\final-year-project\\src\\temp\\sketch\\sketch.ino"
+#line 5 "C:\\Users\\DEXsh\\OneDrive\\Desktop\\project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void loop();
-#line 1 "C:\\Users\\samaa\\Desktop\\final year project\\test project\\back to real proj one\\final-year-project\\src\\temp\\sketch\\sketch.ino"
+#line 1 "C:\\Users\\DEXsh\\OneDrive\\Desktop\\project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup() {
   pinMode(13, OUTPUT);
 }
