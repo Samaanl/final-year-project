@@ -474,6 +474,7 @@ export default function App() {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <div className="toolbar">
+      
         <Tooltip text="New Page (Ctrl+N)">
           {" "}
           {/* Add Tooltip component */}
@@ -485,9 +486,14 @@ export default function App() {
             {/* Display a plus icon with margin */}
             New Page
           </button>
+          
         </Tooltip>
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
+
+      <button onClick={() => console.log("save")}>
+        SAVE
+      </button>
 
       <Tabs style={{ height: "calc(100% - 40px)" }}>
         {" "}
