@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Button, Drawer } from "flowbite-react";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
@@ -169,173 +169,181 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
 
-  // Page component to handle each individual page
-  const Page = ({ pageId, removePage }) => {
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [idCounter, setIdCounter] = useState(1);
-    const [selectedNode, setSelectedNode] = useState(null);
-    const edgeReconnectSuccessful = useRef(true);
-    const [resistorValues, setResistorValues] = useState({});
+  // Memoize the Page component to prevent re-rendering on code changes
+  const MemoizedPage = useMemo(() => {
+    return ({ pageId, removePage }) => {
+      const [nodes, setNodes, onNodesChange] = useNodesState([]);
+      const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+      const [idCounter, setIdCounter] = useState(1);
+      const [selectedNode, setSelectedNode] = useState(null);
+      const edgeReconnectSuccessful = useRef(true);
+      const [resistorValues, setResistorValues] = useState({});
 
-    const onReconnectStart = useCallback(() => {
-      edgeReconnectSuccessful.current = false;
-    }, []);
+      useEffect(() => {
+        console.log("Page component rendered");
+      });
 
-    const onReconnect = useCallback((oldEdge, newConnection) => {
-      edgeReconnectSuccessful.current = true;
-      setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
-    }, []);
+      const onReconnectStart = useCallback(() => {
+        edgeReconnectSuccessful.current = false;
+      }, []);
 
-    const onReconnectEnd = useCallback((_, edge) => {
-      if (!edgeReconnectSuccessful.current) {
-        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-      }
-      edgeReconnectSuccessful.current = true;
-    }, []);
+      const onReconnect = useCallback((oldEdge, newConnection) => {
+        edgeReconnectSuccessful.current = true;
+        setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+      }, []);
 
-    const onConnect = useCallback(
-      (params) => setEdges((els) => addEdge(params, els)),
-      []
-    );
+      const onReconnectEnd = useCallback((_, edge) => {
+        if (!edgeReconnectSuccessful.current) {
+          setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+        }
+        edgeReconnectSuccessful.current = true;
+      }, []);
 
-    const handleDeleteNode = (id) => {
-      setNodes((nds) => nds.filter((node) => node.id !== id));
-      setEdges((eds) =>
-        eds.filter((edge) => edge.source !== id && edge.target !== id)
+      const onConnect = useCallback(
+        (params) => setEdges((els) => addEdge(params, els)),
+        []
+      );
+
+      const handleDeleteNode = (id) => {
+        setNodes((nds) => nds.filter((node) => node.id !== id));
+        setEdges((eds) =>
+          eds.filter((edge) => edge.source !== id && edge.target !== id)
+        );
+      };
+
+      useEffect(() => {
+        const storedValues =
+          JSON.parse(localStorage.getItem("resistorValues")) || {};
+        setResistorValues(storedValues);
+      }, []);
+
+      const addNode = (Component, width, height, initialData = {}) => {
+        const position = { x: 100, y: 100 };
+        const isLEDComponent = Component.name === "LED";
+        const newNode = {
+          id: `${idCounter}`,
+          type: "custom",
+          position,
+          data: {
+            component: (
+              <Component
+                id={`component-${idCounter}`}
+                pos={position}
+                onDelete={handleDeleteNode}
+                {...(isLEDComponent && { brightness: ledState13Ref.current })}
+                {...(isLEDComponent && { ledStateRef: ledState13Ref })}
+                {...(isLEDComponent && { isMainCanvasLED: idCounter === 1 })} // Add this line
+              />
+            ),
+            width,
+            height,
+            ...initialData,
+          },
+          style: {
+            width,
+            height,
+          },
+        };
+        setNodes((nds) => [...nds, newNode]);
+        setIdCounter((prev) => prev + 1);
+        console.log("Node added:", newNode);
+      };
+
+      const handleResistorValueChange = (id, value) => {
+        setResistorValues((prev) => {
+          const updatedValues = { ...prev, [id]: value };
+          localStorage.setItem("resistorValues", JSON.stringify(updatedValues));
+          return updatedValues;
+        });
+      };
+
+      return (
+        <div style={{ display: "flex", height: "100%", width: "100%" }}>
+          <div className="components-section">
+            <h3 className="components-header">Components</h3>
+            <button
+              onClick={() => addNode(LED, 100, 100)}
+              className="component-button"
+            >
+              <FaLightbulb style={{ marginRight: "5px" }} />
+              Add LED
+            </button>
+            <button
+              onClick={() => addNode(Resistor, 100, 50, { resistance: "" })}
+              className="component-button"
+            >
+              <FaMicrochip style={{ marginRight: "5px" }} />
+              Add Resistor
+            </button>
+            <button
+              onClick={() => addNode(Breadboard, 1000, 250)}
+              className="component-button"
+            >
+              <FaBreadSlice style={{ marginRight: "5px" }} />
+              Add Breadboard
+            </button>
+            <button
+              onClick={() => addNode(ArduinoUnoR3, 200, 150)}
+              className="component-button"
+            >
+              <FaMicrochip style={{ marginRight: "5px" }} />
+              Add Arduino Uno
+            </button>
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              nodeTypes={{
+                custom: (props) => (
+                  <CustomNode
+                    {...props}
+                    onResistorValueChange={handleResistorValueChange}
+                    onDelete={handleDeleteNode}
+                  />
+                ),
+              }}
+              onPaneClick={() => setSelectedNode(null)}
+              proOptions={{
+                hideAttribution: true,
+              }}
+              snapToGrid
+              onReconnect={onReconnect}
+              onReconnectStart={onReconnectStart}
+              onReconnectEnd={onReconnectEnd}
+              fitView
+              style={{
+                backgroundColor: "#F7F9FB",
+                border: "2px solid #003366",
+                borderRadius: "10px",
+              }} // Add border and border-radius
+            >
+              <Controls style={{ left: 10, right: "auto" }} />{" "}
+              {/* Position controls on the left */}
+              <MiniMap
+                nodeColor={(node) => {
+                  switch (node.type) {
+                    case "input":
+                      return "blue";
+                    case "output":
+                      return "green";
+                    default:
+                      return "#eee";
+                  }
+                }}
+              />
+              <Background variant="lines" gap={16} size={1} color="#b5deb5" />{" "}
+              {/* Use lines background */}
+            </ReactFlow>
+          </div>
+        </div>
       );
     };
-
-    useEffect(() => {
-      const storedValues =
-        JSON.parse(localStorage.getItem("resistorValues")) || {};
-      setResistorValues(storedValues);
-    }, []);
-
-    const addNode = (Component, width, height, initialData = {}) => {
-      const position = { x: 100, y: 100 };
-      const isLEDComponent = Component.name === "LED";
-      const newNode = {
-        id: `${idCounter}`,
-        type: "custom",
-        position,
-        data: {
-          component: (
-            <Component
-              id={`component-${idCounter}`}
-              pos={position}
-              onDelete={handleDeleteNode}
-              {...(isLEDComponent && { brightness: ledState13Ref.current })}
-              {...(isLEDComponent && { ledStateRef: ledState13Ref })}
-            />
-          ),
-          width,
-          height,
-          ...initialData,
-        },
-        style: {
-          width,
-          height,
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
-      setIdCounter((prev) => prev + 1);
-    };
-
-    const handleResistorValueChange = (id, value) => {
-      setResistorValues((prev) => {
-        const updatedValues = { ...prev, [id]: value };
-        localStorage.setItem("resistorValues", JSON.stringify(updatedValues));
-        return updatedValues;
-      });
-    };
-
-    return (
-      <div style={{ display: "flex", height: "100%", width: "100%" }}>
-        <div className="components-section">
-          <h3 className="components-header">Components</h3>
-          <button
-            onClick={() => addNode(LED, 100, 100)}
-            className="component-button"
-          >
-            <FaLightbulb style={{ marginRight: "5px" }} />
-            Add LED
-          </button>
-          <button
-            onClick={() => addNode(Resistor, 100, 50, { resistance: "" })}
-            className="component-button"
-          >
-            <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Resistor
-          </button>
-          <button
-            onClick={() => addNode(Breadboard, 1000, 250)}
-            className="component-button"
-          >
-            <FaBreadSlice style={{ marginRight: "5px" }} />
-            Add Breadboard
-          </button>
-          <button
-            onClick={() => addNode(ArduinoUnoR3, 200, 150)}
-            className="component-button"
-          >
-            <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Arduino Uno
-          </button>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            nodeTypes={{
-              custom: (props) => (
-                <CustomNode
-                  {...props}
-                  onResistorValueChange={handleResistorValueChange}
-                  onDelete={handleDeleteNode}
-                />
-              ),
-            }}
-            onPaneClick={() => setSelectedNode(null)}
-            proOptions={{
-              hideAttribution: true,
-            }}
-            snapToGrid
-            onReconnect={onReconnect}
-            onReconnectStart={onReconnectStart}
-            onReconnectEnd={onReconnectEnd}
-            fitView
-            style={{
-              backgroundColor: "#F7F9FB",
-              border: "2px solid #003366",
-              borderRadius: "10px",
-            }} // Add border and border-radius
-          >
-            <Controls style={{ left: 10, right: "auto" }} />{" "}
-            {/* Position controls on the left */}
-            <MiniMap
-              nodeColor={(node) => {
-                switch (node.type) {
-                  case "input":
-                    return "blue";
-                  case "output":
-                    return "green";
-                  default:
-                    return "#eee";
-                }
-              }}
-            />
-            <Background variant="lines" gap={16} size={1} color="#b5deb5" />{" "}
-            {/* Use lines background */}
-          </ReactFlow>
-        </div>
-      </div>
-    );
-  };
+  }, []);
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
@@ -482,8 +490,8 @@ export default function App() {
         {pages.map((pageId) => (
           <TabPanel key={pageId} style={{ height: "100%", width: "100%" }}>
             {/* TabPanel component for each page */}
-            <Page pageId={pageId} removePage={handleRemovePage} />{" "}
-            {/* Render the Page component */}
+            <MemoizedPage pageId={pageId} removePage={handleRemovePage} />{" "}
+            {/* Render the MemoizedPage component */}
           </TabPanel>
         ))}
         {/* <textarea
