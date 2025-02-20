@@ -217,7 +217,7 @@ export default function App() {
         setResistorValues(storedValues);
       }, []);
 
-      const addNode = (Component, width, height, initialData = {}) => {
+      const addNode = (Component, width, height, initialData = {}, shouldBlink = false) => {
         const position = { x: 100, y: 100 };
         const isLEDComponent = Component.name === "LED";
         const newNode = {
@@ -232,7 +232,8 @@ export default function App() {
                 onDelete={handleDeleteNode}
                 {...(isLEDComponent && { brightness: ledState13Ref.current })}
                 {...(isLEDComponent && { ledStateRef: ledState13Ref })}
-                {...(isLEDComponent && { isMainCanvasLED: idCounter === 1 })} // Add this line
+                {...(isLEDComponent && { shouldBlink })}
+                {...(isLEDComponent && { isConnected: false })}
               />
             ),
             width,
@@ -249,6 +250,28 @@ export default function App() {
         console.log("Node added:", newNode);
       };
 
+      useEffect(() => {
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.data.component.type.name === "LED") {
+              const isConnected = edges.some(
+                (edge) => edge.source === node.id || edge.target === node.id
+              );
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  component: React.cloneElement(node.data.component, {
+                    isConnected,
+                  }),
+                },
+              };
+            }
+            return node;
+          })
+        );
+      }, [edges]);
+
       const handleResistorValueChange = (id, value) => {
         setResistorValues((prev) => {
           const updatedValues = { ...prev, [id]: value };
@@ -262,7 +285,7 @@ export default function App() {
           <div className="components-section">
             <h3 className="components-header">Components</h3>
             <button
-              onClick={() => addNode(LED, 100, 100)}
+              onClick={() => addNode(LED, 100, 100, {}, true)}
               className="component-button"
             >
               <FaLightbulb style={{ marginRight: "5px" }} />
