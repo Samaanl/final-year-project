@@ -78,7 +78,7 @@ app.get("/getData", (req, res) => {
 app.get("/insert", (req, res) => {
   const insertQuery = `
       INSERT INTO users (name, x, y)
-      VALUES ('Resistor', '10', '20')
+      VALUES ('Breadboard', '10', '20')
     `;
 
   db.run(insertQuery, (err) => {

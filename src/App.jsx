@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Drawer } from "flowbite-react";
+import { v4 as uuidv4 } from 'uuid';
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
 import Editor from "@monaco-editor/react";
@@ -219,8 +220,10 @@ export default function App() {
     const addNode = (Component, width, height,pos, initialData = {}) => {
       const position = { x: pos.x, y: pos.y };
       const isLEDComponent = Component.name === "LED";
+      const uniqueId = uuidv4(); // Generate a unique ID using uuid
+
       const newNode = {
-        id: `${idCounter}`,
+        id: uniqueId,
         type: "custom",
         position,
         data: {
@@ -255,16 +258,31 @@ export default function App() {
       });
     };
     function autoled(data){
-      switch (data.name) {
-        case "LED":
-          addNode(LED, 100, 100,{ x: 100, y: 20 })
-          break;
-          case "Resistor":
-          addNode(Resistor, 100, 50,{ x: 100, y: 20 })
-          break;
-          default:
-          addNode(Breadboard, 100, 100,{ x: 100, y: 20 })
+      for(let i in data){
+        switch (data[i].name) {
+          case "LED":
+            addNode(LED, 100, 100,{ x:data[i].x, y: data[i].y })
+            break;
+            case "Resistor":
+            addNode(Resistor, 100, 50,{ x:data[i].x, y: data[i].y })
+            case "Breadboard":
+              addNode(Breadboard, 1000, 50,{ x:data[i].x, y: data[i].y })
+            break;
+            default:
+            addNode(Breadboard, 100, 100,{ x:data[i].x, y: data[i].y })
+        }
       }
+     
+      // switch (data[0].name) {
+      //   case "LED":
+      //     addNode(LED, 100, 100,{ x: 100, y: 20 })
+      //     break;
+      //     case "Resistor":
+      //     addNode(Resistor, 100, 50,{ x: 100, y: 20 })
+      //     break;
+      //     default:
+      //     addNode(Breadboard, 100, 100,{ x: 100, y: 20 })
+      // }
     
     }
 
@@ -278,7 +296,7 @@ export default function App() {
             // setfetchData(data.data);
             // autoled();
             console.log("autoled i have fetched data from db",data.data);
-            autoled(data.data[0]);
+            autoled(data.data);
           });
         // console.log("autoled i have fetched data from db");
         
