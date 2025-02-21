@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Drawer } from "flowbite-react";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
 import Editor from "@monaco-editor/react";
@@ -217,7 +217,7 @@ export default function App() {
       setResistorValues(storedValues);
     }, []);
 
-    const addNode = (Component, width, height,pos, initialData = {}) => {
+    const addNode = (Component, width, height, pos, initialData = {}) => {
       const position = { x: pos.x, y: pos.y };
       const isLEDComponent = Component.name === "LED";
       const uniqueId = uuidv4(); // Generate a unique ID using uuid
@@ -247,7 +247,6 @@ export default function App() {
       };
       setNodes((nds) => [...nds, newNode]);
       setIdCounter((prev) => prev + 1);
-   
     };
 
     const handleResistorValueChange = (id, value) => {
@@ -257,22 +256,30 @@ export default function App() {
         return updatedValues;
       });
     };
-    function autoled(data){
-      for(let i in data){
+    function autoled(data) {
+      for (let i in data) {
         switch (data[i].name) {
           case "LED":
-            addNode(LED, 100, 100,{ x:data[i].x, y: data[i].y })
+            addNode(LED, 100, 100, { x: data[i].x, y: data[i].y });
             break;
-            case "Resistor":
-            addNode(Resistor, 100, 50,{ x:data[i].x, y: data[i].y })
-            case "Breadboard":
-              addNode(Breadboard, 1000, 50,{ x:data[i].x, y: data[i].y })
+          case "Resistor":
+            addNode(
+              Resistor,
+              100,
+              50,
+              { x: data[i].x, y: data[i].y },
+              { resistance: "" }
+            );
             break;
-            default:
-            addNode(Breadboard, 100, 100,{ x:data[i].x, y: data[i].y })
+          case "Breadboard":
+            addNode(Breadboard, 1000, 50, { x: data[i].x, y: data[i].y });
+            break;
         }
       }
-     
+
+
+
+
       // switch (data[0].name) {
       //   case "LED":
       //     addNode(LED, 100, 100,{ x: 100, y: 20 })
@@ -283,67 +290,95 @@ export default function App() {
       //     default:
       //     addNode(Breadboard, 100, 100,{ x: 100, y: 20 })
       // }
-    
     }
 
-    
-
     useEffect(() => {
-      if (nodes.length === 0) {  // Ensures it runs only if no nodes exist
-        fetch('http://127.0.0.1:3512/getData')
-          .then(res => res.json())
-          .then(data => {
+      if (nodes.length === 0) {
+        // Ensures it runs only if no nodes exist
+        fetch("http://127.0.0.1:3512/getData")
+          .then((res) => res.json())
+          .then((data) => {
             // setfetchData(data.data);
             // autoled();
-            console.log("autoled i have fetched data from db",data.data);
+            console.log("autoled i have fetched data from db", data.data);
             autoled(data.data);
           });
         // console.log("autoled i have fetched data from db");
-        
       }
     }, []);
 
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
+        <button
+          style={{ backgroundColor: "red" }}
+          onClick={() => {
+            let nodeName = [];
+            let x = [];
+            let y = [];
+            for (let i in nodes) {
+              alert(
+                `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
+              );
+              nodeName.push(nodes[i].data.component.type.name);
+              x.push(nodes[i].position.x);
+              y.push(nodes[i].position.y);
+            }
+
+            fetch("http://localhost:3512/insert", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ nodeName: nodeName, x: x, y: y }),
+            }).then((response) => {
+              if (response.ok) {
+                alert("Data saved successfully");
+              } else {
+                alert("Failed to save data");
+              }
+            });
+          }}
+        >
+          SAVE
+        </button>
         <div className="components-section">
           <h3 className="components-header">Components</h3>
           <button
-            onClick={() => addNode(LED, 100, 100,{ x: 100, y: 100 })}
+            onClick={() => addNode(LED, 100, 100, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
             Add LED
           </button>
           <button
-            onClick={() => addNode(Resistor, 100, 50,{ x: 100, y: 100 }, { resistance: "" })}
+            onClick={() =>
+              addNode(Resistor, 100, 50, { x: 100, y: 100 }, { resistance: "" })
+            }
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Resistor
           </button>
           <button
-            onClick={() => addNode(Breadboard, 1000, 250,{ x: 100, y: 100 })}
+            onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaBreadSlice style={{ marginRight: "5px" }} />
             Add Breadboard
           </button>
           <button
-            onClick={() => addNode(ArduinoUnoR3, 200, 150,{ x: 100, y: 100 })}
+            onClick={() => addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Arduino Uno
           </button>
           {
-          
-          // autoled()
+            // autoled()
           }
         </div>
 
         <div style={{ flex: 1 }}>
-        <p>Active Nodes: {getActiveNodesCount()}</p>
+          <p>Active Nodes: {getActiveNodesCount()}</p>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -353,9 +388,9 @@ export default function App() {
             nodeTypes={{
               custom: (props) => (
                 <CustomNode
-                {...props}
-                onResistorValueChange={handleResistorValueChange}
-                onDelete={handleDeleteNode}
+                  {...props}
+                  onResistorValueChange={handleResistorValueChange}
+                  onDelete={handleDeleteNode}
                 />
               ),
             }}
@@ -492,7 +527,6 @@ export default function App() {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <div className="toolbar">
-      
         <Tooltip text="New Page (Ctrl+N)">
           {" "}
           {/* Add Tooltip component */}
@@ -504,14 +538,9 @@ export default function App() {
             {/* Display a plus icon with margin */}
             New Page
           </button>
-          
         </Tooltip>
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
-
-      <button onClick={() => console.log("save")}>
-        SAVE
-      </button>
 
       <Tabs style={{ height: "calc(100% - 40px)" }}>
         {" "}

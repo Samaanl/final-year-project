@@ -1,5 +1,5 @@
 import express from "express";
-import sqlite3 from 'sqlite3';
+import sqlite3 from "sqlite3";
 //new added starts
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -15,7 +15,7 @@ const app = express();
 const port = 3512;
 
 //initialising database
-const dbPath = path.join(__dirname, 'database.sqlite');
+const dbPath = path.join(__dirname, "database.sqlite");
 const dbExists = fs.existsSync(dbPath);
 const db = new sqlite3.Database(dbPath);
 
@@ -74,24 +74,34 @@ app.get("/getData", (req, res) => {
   });
 });
 
+app.post("/insert", (req, res) => {
+  db.run("DELETE FROM users", (err) => {
+    const { nodeName, x, y } = req.body;
 
-app.get("/insert", (req, res) => {
-  const insertQuery = `
-      INSERT INTO users (name, x, y)
-      VALUES ('Breadboard', '10', '20')
-    `;
+    // Build placeholders like (?,?,?) for each item
+    const placeholders = nodeName.map(() => "(?,?,?)").join(", ");
 
-  db.run(insertQuery, (err) => {
-    if (err) {
-      console.error("Error creating table:", err.message);
-      res.status(500).json({ error: "Failed to create table" });
-      return;
+    // Flatten arrays into a single values array
+    const values = [];
+    for (let i = 0; i < nodeName.length; i++) {
+      values.push(nodeName[i], String(x[i]), String(y[i]));
     }
+    const insertQuery = `
+        INSERT INTO users (name, x, y)
+        VALUES ${placeholders};
+      `;
 
-    res.json({ message: `Table created successfully at ${ __dirname}` });
+    db.run(insertQuery, values, (err) => {
+      if (err) {
+        console.error("Error creating table:", err.message);
+        res.status(500).json({ error: "Failed to create table" });
+        return;
+      }
+
+      res.json({ message: `Table created successfully at ${__dirname}` });
+    });
   });
 });
-
 
 app.get("/say", (req, res) => {
   res.json({ message: "damn sayyyyy" });
