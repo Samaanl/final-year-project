@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Button, Drawer } from "flowbite-react";
+import { Button, Drawer, Modal, TextInput } from "flowbite-react";
 import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
 import Editor from "@monaco-editor/react";
+// import Model from "./model.jsx";
 import {
   avrInstruction,
   AVRIOPort,
@@ -166,6 +167,10 @@ export default function App() {
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
 
+  // Add state to manage the modal visibility and input value
+const [isModalOpen, setIsModalOpen] = useState(false);
+const [newPageName, setNewPageName] = useState("");
+
   const [fetchData, setfetchData] = useState([]);
 
   // Add this state near your other state declarations
@@ -313,6 +318,7 @@ export default function App() {
         <button
           style={{ backgroundColor: "red" }}
           onClick={() => {
+            let project = [];
             let nodeName = [];
             let x = [];
             let y = [];
@@ -320,15 +326,20 @@ export default function App() {
               alert(
                 `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
               );
+              
               nodeName.push(nodes[i].data.component.type.name);
               x.push(nodes[i].position.x);
               y.push(nodes[i].position.y);
             }
-
+            project.push(newPageName);
+            // console.log("project", project);
+            // console.log("nodeName", nodeName);
+            // console.log("x", x);
+            // console.log("y", y);
             fetch("http://localhost:3512/insert", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ nodeName: nodeName, x: x, y: y }),
+              body: JSON.stringify({ proj:project, nodeName: nodeName, x: x, y: y }),
             }).then((response) => {
               if (response.ok) {
                 alert("Data saved successfully");
@@ -343,7 +354,7 @@ export default function App() {
         <div className="components-section">
           <h3 className="components-header">Components</h3>
           <button
-            onClick={() => addNode(LED, 100, 100, { x: 100, y: 100 })}
+            onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
@@ -379,6 +390,8 @@ export default function App() {
 
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
+          <p>display name: {}</p>
+          
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -433,10 +446,21 @@ export default function App() {
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
-    const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-    setPageCounter(pageCounter + 1); // Increment the page counter
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+    // setPageCounter(pageCounter + 1); // Increment the page counter
+    setIsModalOpen(true); // Show the modal
   };
+
+  // Function to handle the submission of the new page name
+const handleNewPageSubmit = () => {
+  // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+  const newPageId = `${newPageName}`;
+  setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+  setPageCounter(pageCounter + 1); // Increment the page counter
+  setIsModalOpen(false); // Hide the modal
+  // setNewPageName(""); // Clear the input value
+};
 
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
@@ -534,11 +558,13 @@ export default function App() {
             onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
             className="toolbar-button"
           >
+            
             <MdNoteAdd style={{ marginRight: "5px" }} />{" "}
             {/* Display a plus icon with margin */}
             New Page
           </button>
         </Tooltip>
+    
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
 
@@ -552,7 +578,7 @@ export default function App() {
             <Tab key={pageId}>
               {" "}
               {/* Tab component for each page */}
-              Page {index + 1} {/* Display the page number */}
+              {pageId} {/* Display the page number */}
               <button
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent the click event from propagating to the tab
@@ -617,6 +643,27 @@ export default function App() {
           {isRunning ? "STOP" : "RUN"}
         </button>
       </Tabs>
+
+
+      {/* Modal for entering the new page name */}
+    <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      <Modal.Header>Enter Project Name</Modal.Header>
+      <Modal.Body>
+        <TextInput
+          value={newPageName}
+          onChange={(e) => setNewPageName(e.target.value)}
+          placeholder="Project Name"
+        />
+      </Modal.Body>
+      <Modal.Footer>
+        {/* <Button onClick={handleNewPageSubmit}>Submit</Button> */}
+        <Button color="gray" onClick={handleNewPageSubmit}>Submit</Button>
+
+        <Button color="gray" onClick={() => setIsModalOpen(false)}>
+          Cancel
+        </Button>
+      </Modal.Footer>
+    </Modal>
     </div>
   );
 }

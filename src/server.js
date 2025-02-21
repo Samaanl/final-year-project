@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 3512;
 
-//initialising database
+//initialising database projName TEXT NOT NULL,
 const dbPath = path.join(__dirname, "database.sqlite");
 const dbExists = fs.existsSync(dbPath);
 const db = new sqlite3.Database(dbPath);
@@ -23,9 +23,10 @@ if (!dbExists) {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      proj TEXT NOT NULL,
       name TEXT NOT NULL,
-    x TEXT NOT NULL,
-    y TEXT NOT NULL
+      x TEXT NOT NULL,
+      y TEXT NOT NULL
     )
   `;
 
@@ -60,7 +61,7 @@ app.get("/", (req, res) => {
 
 app.get("/getData", (req, res) => {
   const selectQuery = `
-    SELECT name, x, y FROM users
+    SELECT proj,name, x, y FROM users
   `;
 
   db.all(selectQuery, (err, rows) => {
@@ -69,27 +70,30 @@ app.get("/getData", (req, res) => {
       res.status(500).json({ error: "Failed to fetch data" });
       return;
     }
-
     res.json({ data: rows });
   });
 });
 
 app.post("/insert", (req, res) => {
   db.run("DELETE FROM users", (err) => {
-    const { nodeName, x, y } = req.body;
+    const { proj,nodeName, x, y } = req.body;
 
     // Build placeholders like (?,?,?) for each item
-    const placeholders = nodeName.map(() => "(?,?,?)").join(", ");
+    const placeholders = nodeName.map(() => "(?,?,?,?)").join(", ");
 
     // Flatten arrays into a single values array
     const values = [];
     for (let i = 0; i < nodeName.length; i++) {
-      values.push(nodeName[i], String(x[i]), String(y[i]));
+      values.push(proj[0],nodeName[i], String(x[i]), String(y[i]));
     }
     const insertQuery = `
-        INSERT INTO users (name, x, y)
+        INSERT INTO users (proj,name, x, y)
         VALUES ${placeholders};
       `;
+
+      console.log("insertQuery", insertQuery);
+      console.log("values",values);
+
 
     db.run(insertQuery, values, (err) => {
       if (err) {
