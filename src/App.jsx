@@ -168,6 +168,7 @@ export default function App() {
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
+  const [ledState, setLedState] = useState(false); // Add this state
 
   // Memoize the Page component to prevent re-rendering on code changes
   const MemoizedPage = useMemo(() => {
@@ -428,32 +429,48 @@ export default function App() {
     const cpu = new CPU(data16);
     console.log("CPU Initialized:", cpu);
 
-    //attach the virtual hardware
-    const port = new AVRIOPort(cpu, portDConfig);
+    // Attach the virtual hardware
+    const portD = new AVRIOPort(cpu, portDConfig);
     const portB = new AVRIOPort(cpu, portBConfig);
 
-    console.log("Attaching listener to port...");
+    console.log("Attaching listener to ports...");
 
-    // portB.addListener(() => {
-    //   const turnon = portB.pinState(5) === PinState.High;
-    //   ledState13Ref.current = turnon;
-    // });
-    portB.addListener(() => {
-      const turnon = portB.pinState(5) === PinState.High;
-      console.log("LED on pin 13 is", turnon);
-      ledState13Ref.current = turnon;
-    });
+    const updateLEDState = (port, pin) => {
+      const turnOn = port.pinState(pin) === PinState.High;
+      console.log(`LED on pin ${pin} is`, turnOn);
+      ledState13Ref.current = turnOn;
+    };
 
-    // Add a manual state check to verify port state directly
-    // console.log("Initial pin state:", port.pinState(7));
+    // Add listeners for all digital pins from 0 to 13
+    for (let pin = 0; pin <= 7; pin++) {
+      portD.addListener(() => updateLEDState(portD, pin));
+    }
+    for (let pin = 8; pin <= 13; pin++) {
+      portB.addListener(() => updateLEDState(portB, pin - 8));
+    }
+
     const timer = new AVRTimer(cpu, timer0Config);
 
-    //run the instaruction one by one
+    // Run the instructions one by one
     while (true) {
       for (let i = 0; i < 500000; i++) {
         avrInstruction(cpu);
         cpu.tick();
-        // cpu.maxInterrupt;
+      }
+      // Log the state of all pins as true or false
+      for (let pin = 0; pin <= 7; pin++) {
+        const state = portD.pinState(pin) === PinState.High;
+        console.log(`Pin ${pin} state:`, state);
+        if (pin === 13) {
+          ledState13Ref.current = state;
+        }
+      }
+      for (let pin = 8; pin <= 13; pin++) {
+        const state = portB.pinState(pin - 8) === PinState.High;
+        console.log(`Pin ${pin} state:`, state);
+        if (pin === 13) {
+          ledState13Ref.current = state;
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
