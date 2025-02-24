@@ -42,6 +42,8 @@ import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -201,8 +203,56 @@ export default function App() {
       }, []);
 
       const onConnect = useCallback(
-        (params) => setEdges((els) => addEdge(params, els)),
-        []
+        (params) => {
+          // Get the source and target nodes
+          const sourceNode = nodes.find(node => node.id === params.source);
+          const targetNode = nodes.find(node => node.id === params.target);
+
+          if (sourceNode && targetNode) {
+            // Get component types and handle names
+            const sourceType = sourceNode.type;
+            const targetType = targetNode.type;
+            const sourceHandle = params.sourceHandle;
+            const targetHandle = params.targetHandle;
+
+            // Create a notification message
+            let notificationMessage = `Connected ${sourceType} (${sourceHandle}) to ${targetType} (${targetHandle})`;
+
+            // Add specific component notifications
+            if ((sourceType === 'led' && targetType === 'arduinoUno') || 
+                (targetType === 'led' && sourceType === 'arduinoUno')) {
+              const led = sourceType === 'led' ? sourceNode : targetNode;
+              const arduino = sourceType === 'arduinoUno' ? sourceNode : targetNode;
+              const pin = sourceType === 'arduinoUno' ? sourceHandle : targetHandle;
+              notificationMessage = `LED ${sourceType === 'led' ? sourceHandle : targetHandle} connected to Arduino Uno ${pin}`;
+              toast.info(notificationMessage, {
+                icon: "💡"
+              });
+            } else if ((sourceType === 'resistor' || targetType === 'resistor')) {
+              const resistor = sourceType === 'resistor' ? sourceNode : targetNode;
+              const otherComponent = sourceType === 'resistor' ? targetNode : sourceNode;
+              notificationMessage = `Resistor ${sourceType === 'resistor' ? sourceHandle : targetHandle} connected to ${otherComponent.type} ${sourceType === 'resistor' ? targetHandle : sourceHandle}`;
+              toast.info(notificationMessage, {
+                icon: "⚡"
+              });
+            } else if ((sourceType === 'breadboard' || targetType === 'breadboard')) {
+              const breadboard = sourceType === 'breadboard' ? sourceNode : targetNode;
+              const otherComponent = sourceType === 'breadboard' ? targetNode : sourceNode;
+              notificationMessage = `Breadboard ${sourceType === 'breadboard' ? sourceHandle : targetHandle} connected to ${otherComponent.type} ${sourceType === 'breadboard' ? targetHandle : sourceHandle}`;
+              toast.info(notificationMessage, {
+                icon: "🔌"
+              });
+            } else {
+              toast.info(notificationMessage, {
+                icon: "🔗"
+              });
+            }
+          }
+
+          // Create the edge connection
+          setEdges((eds) => addEdge(params, eds));
+        },
+        [nodes]
       );
 
       const handleDeleteNode = (id) => {
@@ -480,6 +530,18 @@ export default function App() {
   console.log("is running", isRunning);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <div className="toolbar">
         <Tooltip text="New Page (Ctrl+N)">
           {" "}
