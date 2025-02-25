@@ -3,14 +3,14 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink, isConnected }) => {
+const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef(null);
   const bulbRef = useRef(null);
   const [brightnessState, setBrightness] = useState(brightness);
-  const [ledState, setLedState] = useState(ledStateRef.current);
+  const [ledState, setLedState] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -32,16 +32,16 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink, isConnec
   }, [showInput]);
 
   useEffect(() => {
-    if (shouldBlink && isConnected) {
-      const interval = setInterval(() => {
-        setLedState(ledStateRef.current);
-      }, 100);
+    setBrightness(brightness);
+  }, [brightness]);
 
-      return () => clearInterval(interval);
+  useEffect(() => {
+    if (isConnected) {
+      setLedState(ledStateRef.current);
     } else {
       setLedState(false);
     }
-  }, [ledStateRef, shouldBlink, isConnected]);
+  }, [isConnected, ledStateRef]);
 
   const handleClick = () => {
     setShowInput(true);
@@ -60,7 +60,7 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink, isConnec
 
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`,
-    boxShadow: (ledState && isConnected) ? `0 0 64px 21px ${color}` : `0 0 0px 0px ${color}`,
+    boxShadow: ledState ? `0 0 64px 21px ${color}` : `0 0 0px 0px ${color}`,
   };
 
   return (

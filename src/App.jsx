@@ -163,7 +163,7 @@ const beforeMount = (monaco) => {
 export default function App() {
   const [pages, setPages] = useState([]); // State to manage the list of pages
   const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
-  const ledState13Ref = useRef(false); // Use useRef instead of useState
+  const ledStateRef = useRef(false); // Ensure this is defined at the top
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
 
@@ -171,6 +171,7 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
   const [ledState, setLedState] = useState(false); // Add this state
+  const [pinState, setPinState] = useState(false); // Add this state
 
   // Memoize the Page component to prevent re-rendering on code changes
   const MemoizedPage = useMemo(() => {
@@ -281,10 +282,11 @@ export default function App() {
                 id={`component-${idCounter}`}
                 pos={position}
                 onDelete={handleDeleteNode}
-                {...(isLEDComponent && { brightness: ledState13Ref.current })}
-                {...(isLEDComponent && { ledStateRef: ledState13Ref })}
-                {...(isLEDComponent && { shouldBlink })}
+                {...(isLEDComponent && { brightness: ledStateRef.current })}
+                {...(isLEDComponent && { ledStateRef: ledStateRef })}
+                {...(isLEDComponent && { shouldBlink: false })}
                 {...(isLEDComponent && { isConnected: false })}
+                {...(isLEDComponent && { pinState: pinState })}
               />
             ),
             width,
@@ -301,19 +303,111 @@ export default function App() {
         console.log("Node added:", newNode);
       };
 
+      const [successNotificationShown, setSuccessNotificationShown] = useState({});
+
       useEffect(() => {
         setNodes((nds) =>
           nds.map((node) => {
             if (node.data.component.type.name === "LED") {
-              const isConnected = edges.some(
-                (edge) => edge.source === node.id || edge.target === node.id
+              // Get the Arduino node and Resistor nodes
+              const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
+              const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
+              if (!resistors) return node;
+              const connectedResistor = resistors.find(resistor => {
+                const ledToResistor = edges.find(
+                  edge => 
+                    ((edge.source === node.id && edge.target === resistor.id &&
+                      edge.sourceHandle === "anode-source" && 
+                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
+                    (edge.source === resistor.id && edge.target === node.id &&
+                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
+                      edge.targetHandle === "anode-target"))
+                );
+                
+                if (!ledToResistor) return false;
+
+                const resistorToArduino = edges.find(
+                  edge =>
+                    ((edge.source === resistor.id && edge.target === arduinoNode?.id &&
+                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
+                      edge.targetHandle === "handle-target-digital-13") ||
+                    (edge.source === arduinoNode?.id && edge.target === resistor.id &&
+                      edge.sourceHandle === "handle-source-digital-13" && 
+                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")))
+                );
+
+                return Boolean(resistorToArduino);
+              });
+
+              // Check if cathode is connected to GND
+              const isCathodeConnectedToGND = Boolean(
+                edges.find(edge => 
+                  (edge.source === node.id && 
+                   edge.target === arduinoNode?.id && 
+                   (edge.targetHandle === "handle-target-power-GND1" || 
+                    edge.targetHandle === "handle-target-power-GND2")) ||
+                  (edge.source === arduinoNode?.id && 
+                   edge.target === node.id && 
+                   (edge.sourceHandle === "handle-source-power-GND1" || 
+                    edge.sourceHandle === "handle-source-power-GND2"))
+                )
               );
+
+              const pinConnections = edges.filter(edge => 
+                (edge.source === arduinoNode.id && resistors.some(resistor => edge.target === resistor.id && edge.sourceHandle.includes('digital'))) ||
+                (edge.target === arduinoNode.id && resistors.some(resistor => edge.source === resistor.id && edge.targetHandle.includes('digital')))
+              );
+              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && pinConnections.length > 0;
+              
+              // Update the LED state based on the pin state
+              if (isProperlyConnected) {
+                setLedState(ledStateRef.current);
+              } else {
+                setLedState(false);
+              }
+
+              // Show connection status notifications
+              if (edges.find(edge => 
+                (edge.source === node.id && edge.sourceHandle === "anode-source") ||
+                (edge.target === node.id && edge.targetHandle === "anode-target")
+              ) && !connectedResistor) {
+                toast.warning(`Connect the LED's anode (longer leg) to any side of the resistor`, {
+                  icon: "⚡",
+                  toastId: `anode-${node.id}`,
+                  autoClose: 3000
+                });
+              }
+
+              if (edges.find(edge => 
+                (edge.source === node.id && edge.sourceHandle === "cathode-source") ||
+                (edge.target === node.id && edge.targetHandle === "cathode-target")
+              ) && !isCathodeConnectedToGND) {
+                toast.warning(`Connect the LED's cathode (shorter leg) to GND`, {
+                  icon: "⚡",
+                  toastId: `cathode-${node.id}`,
+                  autoClose: 3000
+                });
+              }
+
+              // Show success notification only once when circuit is complete
+              if (isProperlyConnected && !successNotificationShown[node.id]) {
+                toast.success(`Circuit complete! The LED should now blink.`, {
+                  icon: "💡",
+                  toastId: `success-${node.id}`,
+                  autoClose: 3000
+                });
+                setSuccessNotificationShown(prev => ({ ...prev, [node.id]: true }));
+              }
+
               return {
                 ...node,
                 data: {
                   ...node.data,
                   component: React.cloneElement(node.data.component, {
-                    isConnected,
+                    isConnected: isProperlyConnected,
+                    shouldBlink: isProperlyConnected,
+                    brightness: ledStateRef.current,
+                    pinState: pinState,
                   }),
                 },
               };
@@ -321,7 +415,7 @@ export default function App() {
             return node;
           })
         );
-      }, [edges]);
+      }, [edges, nodes, successNotificationShown]);
 
       const handleResistorValueChange = (id, value) => {
         setResistorValues((prev) => {
@@ -488,7 +582,8 @@ export default function App() {
     const updateLEDState = (port, pin) => {
       const turnOn = port.pinState(pin) === PinState.High;
       console.log(`LED on pin ${pin} is`, turnOn);
-      ledState13Ref.current = turnOn;
+      ledStateRef.current = turnOn;
+      setPinState(turnOn);
     };
 
     // Add listeners for all digital pins from 0 to 13
@@ -512,14 +607,16 @@ export default function App() {
         const state = portD.pinState(pin) === PinState.High;
         console.log(`Pin ${pin} state:`, state);
         if (pin === 13) {
-          ledState13Ref.current = state;
+          ledStateRef.current = state;
+          setPinState(state);
         }
       }
       for (let pin = 8; pin <= 13; pin++) {
         const state = portB.pinState(pin - 8) === PinState.High;
         console.log(`Pin ${pin} state:`, state);
         if (pin === 13) {
-          ledState13Ref.current = state;
+          ledStateRef.current = state;
+          setPinState(state);
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 0));
