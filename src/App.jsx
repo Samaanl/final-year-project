@@ -161,6 +161,7 @@ const beforeMount = (monaco) => {
 
 // Main App component
 export default function App() {
+  const [pinState, setPinState] = useState({}); // Add this state at the top
   const [pages, setPages] = useState([]); // State to manage the list of pages
   const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
   const ledStateRef = useRef(false); // Ensure this is defined at the top
@@ -170,8 +171,7 @@ export default function App() {
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
-  const [ledState, setLedState] = useState(false); // Add this state
-  const [pinState, setPinState] = useState(false); // Add this state
+  const [ledState, setLedState] = useState(true); // Set initial state to true
 
   // Memoize the Page component to prevent re-rendering on code changes
   const MemoizedPage = useMemo(() => {
@@ -355,13 +355,21 @@ export default function App() {
 
               const pinConnections = edges.filter(edge => 
                 (edge.source === arduinoNode.id && resistors.some(resistor => edge.target === resistor.id && edge.sourceHandle.includes('digital'))) ||
-                (edge.target === arduinoNode.id && resistors.some(resistor => edge.source === resistor.id && edge.targetHandle.includes('digital')))
-              );
+                (edge.target === arduinoNode.id && resistors.some(resistor => edge.source === resistor.id && edge.targetHandle.includes('digital'))));
+
+              console.log(`Pin connections:`, pinConnections);
+              const pinNumber = pinConnections.find(edge => edge.source === arduinoNode.id)?.sourceHandle?.replace('handle-source-', '').split('-')[1] || 
+                  pinConnections.find(edge => edge.target === arduinoNode.id)?.targetHandle?.replace('handle-target-', '').split('-')[1];
+              console.log(`Extracted pin number:`, pinNumber);
+
               const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && pinConnections.length > 0;
-              
+
               // Update the LED state based on the pin state
               if (isProperlyConnected) {
-                setLedState(ledStateRef.current);
+                const currentPinState = pinState[pinNumber];
+                console.log(`Pin state for ${pinNumber}:`, pinState[pinNumber]);
+                console.log(`LED state being set:`, pinState[pinNumber]);
+                setLedState(true); // Temporarily set LED state to true for testing
               } else {
                 setLedState(false);
               }
@@ -583,7 +591,9 @@ export default function App() {
       const turnOn = port.pinState(pin) === PinState.High;
       console.log(`LED on pin ${pin} is`, turnOn);
       ledStateRef.current = turnOn;
-      setPinState(turnOn);
+      console.log(`LED state updated for pin ${pin}:`, ledStateRef.current);
+      setPinState((prev) => ({ ...prev, [pin]: turnOn }));
+      console.log(`Current pinState object:`, pinState);
     };
 
     // Add listeners for all digital pins from 0 to 13
@@ -608,7 +618,8 @@ export default function App() {
         console.log(`Pin ${pin} state:`, state);
         if (pin === 13) {
           ledStateRef.current = state;
-          setPinState(state);
+          setPinState((prev) => ({ ...prev, [pin]: state }));
+          console.log(`Current pinState object:`, pinState);
         }
       }
       for (let pin = 8; pin <= 13; pin++) {
@@ -616,7 +627,8 @@ export default function App() {
         console.log(`Pin ${pin} state:`, state);
         if (pin === 13) {
           ledStateRef.current = state;
-          setPinState(state);
+          setPinState((prev) => ({ ...prev, [pin]: state }));
+          console.log(`Current pinState object:`, pinState);
         }
       }
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -625,6 +637,17 @@ export default function App() {
 
   console.log(`the hex is ${resultOfHex}`);
   console.log("is running", isRunning);
+
+  // Add state management and effect to make the LED blink based on the pin state changes
+  const [ledBlinkState, setLedBlinkState] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLedBlinkState(prevState => !prevState); // Toggle LED state
+    }, 1000); // Change this interval as needed
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <ToastContainer

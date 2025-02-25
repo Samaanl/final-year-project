@@ -3,7 +3,7 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false }) => {
+const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false, isActive = true }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);
@@ -43,6 +43,19 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
     }
   }, [isConnected, ledStateRef]);
 
+  useEffect(() => {
+    console.log(`LED state updated:`, ledState);
+    console.log(`isActive value:`, isActive);
+    setLedState(true); // Temporarily set LED state to true for testing
+    const interval = setInterval(() => {
+      if (ledState && shouldBlink) {
+        setLedState(prev => !prev); // Toggle LED state
+      }
+    }, 1000); // Change this interval as needed
+
+    return () => clearInterval(interval);
+  }, [ledState, shouldBlink, isActive]);
+
   const handleClick = () => {
     setShowInput(true);
   };
@@ -60,13 +73,13 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
 
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`,
-    boxShadow: ledState ? `0 0 64px 21px ${color}` : `0 0 0px 0px ${color}`,
+    boxShadow: isActive ? `0 0 64px 21px ${color}` : 'none',
   };
 
   return (
     <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
       <div
-        className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
+        className={`relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${isActive ? 'active' : ''}`}
         style={style}
         ref={bulbRef}
         onClick={handleClick}
@@ -118,7 +131,7 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
           style={{
             width: `${size.width}px`,
             height: `${size.height}px`,
-            backgroundColor: color,
+            backgroundColor: 'yellow', // Set static color for testing
             position: "relative",
             zIndex: 10,
           }}
