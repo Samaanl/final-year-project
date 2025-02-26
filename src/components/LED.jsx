@@ -3,7 +3,8 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false, isActive = false }) => {
+const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false }) => {
+  const [isActive, setIsActive] = useState(false);
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);
@@ -46,7 +47,6 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
   useEffect(() => {
     console.log(`LED state updated:`, ledState);
     console.log(`isActive value:`, isActive);
-    setLedState(true); // Temporarily set LED state to true for testing
     const interval = setInterval(() => {
       if (ledState && shouldBlink) {
         setLedState(prev => !prev); // Toggle LED state
@@ -54,7 +54,7 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
     }, 1000); // Change this interval as needed
 
     return () => clearInterval(interval);
-  }, [ledState, shouldBlink, isActive]);
+  }, [ledState, shouldBlink]);
 
   const handleClick = () => {
     setShowInput(true);
@@ -131,7 +131,7 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
           style={{
             width: `${size.width}px`,
             height: `${size.height}px`,
-            backgroundColor: 'yellow', // Set static color for testing
+            backgroundColor: color,
             position: "relative",
             zIndex: 10,
           }}

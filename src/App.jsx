@@ -161,7 +161,22 @@ const beforeMount = (monaco) => {
 
 // Main App component
 export default function App() {
-  const [pinState, setPinState] = useState({}); // Add this state at the top
+  const [pinState, setPinState] = useState({
+    0: false,
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+    7: false,
+    8: false,
+    9: false,
+    10: false,
+    11: false,
+    12: false,
+    13: false, 
+  }); // Add this state at the top
   const [pages, setPages] = useState([]); // State to manage the list of pages
   const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
   const ledStateRef = useRef(false); // Ensure this is defined at the top
@@ -172,6 +187,7 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
   const [ledState, setLedState] = useState(true); // Set initial state to true
+  const [isActive, setIsActive] = useState(false); // Add isActive state variable
 
   // Memoize the Page component to prevent re-rendering on code changes
   const MemoizedPage = useMemo(() => {
@@ -287,6 +303,7 @@ export default function App() {
                 {...(isLEDComponent && { shouldBlink: false })}
                 {...(isLEDComponent && { isConnected: false })}
                 {...(isLEDComponent && { pinState: pinState })}
+                {...(isLEDComponent && { isActive: isActive })}
               />
             ),
             width,
@@ -367,9 +384,9 @@ export default function App() {
               // Update the LED state based on the pin state
               if (isProperlyConnected) {
                 const currentPinState = pinState[pinNumber];
-                console.log(`Pin state for ${pinNumber}:`, pinState[pinNumber]);
-                console.log(`LED state being set:`, pinState[pinNumber]);
-                setLedState(true); // Temporarily set LED state to true for testing
+                console.log(`Pin state for ${pinNumber}:`, currentPinState);
+                console.log(`LED state being set:`, currentPinState);
+                setLedState(currentPinState); // Set LED state based on pin state
               } else {
                 setLedState(false);
               }
@@ -416,6 +433,7 @@ export default function App() {
                     shouldBlink: isProperlyConnected,
                     brightness: ledStateRef.current,
                     pinState: pinState,
+                    isActive: isActive,
                   }),
                 },
               };
@@ -588,16 +606,23 @@ export default function App() {
     console.log("Attaching listener to ports...");
 
     const updateLEDState = (port, pin) => {
-  const turnOn = port.pinState(pin) === PinState.High;
-  console.log(`LED on pin ${pin} is`, turnOn); // Log the state of the LED
-  ledStateRef.current = turnOn;
-  setPinState((prev) => {
-    const newState = { ...prev, [pin]: turnOn }; // Update pin state
-    console.log(`Updated pin state for pin ${pin}:`, turnOn); // Log the updated state for the specific pin
-    console.log(`Current pinState object:`, newState); // Log the entire pinState object
-    return newState;
-  });
-};
+      const turnOn = port.pinState(pin) === PinState.High;
+      console.log(`LED on pin ${pin} is`, turnOn); // Log the state of the LED
+      ledStateRef.current = turnOn;
+      console.log(`Current pin state before update:`, pinState[pin]);
+      setPinState((prev) => {
+        const newState = { ...prev, [pin]: turnOn }; // Update pin state
+        console.log(`Updated pin state for pin ${pin}:`, turnOn); // Log the updated state for the specific pin
+        console.log(`Current pinState object:`, newState); // Log the entire pinState object
+        return newState;
+      });
+
+      // Update LED state based on the current pin state
+      if (pin === 13) {
+        setIsActive(pinState[pin]); // Update isActive based on pin state
+        setLedState(pinState[pin]); // Use the previously obtained state directly
+      }
+    };
 
     // Add listeners for all digital pins from 0 to 13
     for (let pin = 0; pin <= 7; pin++) {
@@ -615,25 +640,40 @@ export default function App() {
         avrInstruction(cpu);
         cpu.tick();
       }
-      // Log the state of all pins as true or false
-      for (let pin = 0; pin <= 7; pin++) {
-        const state = portD.pinState(pin) === PinState.High;
-        console.log(`Pin ${pin} state:`, state);
-        if (pin === 13) {
-          ledStateRef.current = state;
-          setPinState((prev) => ({ ...prev, [pin]: state }));
-          console.log(`Current pinState object:`, pinState);
-        }
-      }
-      for (let pin = 8; pin <= 13; pin++) {
-        const state = portB.pinState(pin - 8) === PinState.High;
-        console.log(`Pin ${pin} state:`, state);
-        if (pin === 13) {
-          ledStateRef.current = state;
-          setPinState((prev) => ({ ...prev, [pin]: state }));
-          console.log(`Current pinState object:`, pinState);
-        }
-      }
+     // Update pin states for pins 0 to 7
+for (let pin = 0; pin <= 7; pin++) {
+  const state = portD.pinState(pin) === PinState.High;
+  console.log(`Pin ${pin} state:`, state);
+  setPinState((prev) => {
+    console.log(`Current pinState object before update:`, prev);
+    const newState = { ...prev, [pin]: state }; // Update pin state for each pin
+    // Set isActive based on the pin state
+    if (pin === 13) {
+      const pin13State = portB.pinState(pin - 8);
+      setIsActive(pinState[pin]); // Update isActive based on pin state
+      setLedState(pinState[pin]); // Use the previously obtained state directly
+    }
+    return newState;
+  });
+}
+
+// Update pin states for pins 8 to 13
+for (let pin = 8; pin <= 13; pin++) {
+  const state = portB.pinState(pin - 8) === PinState.High;
+  console.log(`Pin ${pin} state:`, state);
+  setPinState((prev) => {
+    console.log(`Current pinState object before update:`, prev);
+    const newState = { ...prev, [pin]: state }; // Update pin state for each pin
+    return newState;
+  });
+  if (state) {
+    setIsActive(pinState[pin]); // Update isActive based on pin state
+    setLedState(pinState[pin]); // Use the previously obtained state directly
+  } else {
+    setIsActive(false); // Deactivate the LED if the pin state is false
+    setLedState(false); // Deactivate the LED if the pin state is false
+  }
+}
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   };
