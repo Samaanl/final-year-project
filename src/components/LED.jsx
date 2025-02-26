@@ -3,7 +3,7 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false, isActive = true }) => {
+const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false, isActive = false }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);

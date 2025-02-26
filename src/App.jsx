@@ -588,13 +588,16 @@ export default function App() {
     console.log("Attaching listener to ports...");
 
     const updateLEDState = (port, pin) => {
-      const turnOn = port.pinState(pin) === PinState.High;
-      console.log(`LED on pin ${pin} is`, turnOn);
-      ledStateRef.current = turnOn;
-      console.log(`LED state updated for pin ${pin}:`, ledStateRef.current);
-      setPinState((prev) => ({ ...prev, [pin]: turnOn }));
-      console.log(`Current pinState object:`, pinState);
-    };
+  const turnOn = port.pinState(pin) === PinState.High;
+  console.log(`LED on pin ${pin} is`, turnOn); // Log the state of the LED
+  ledStateRef.current = turnOn;
+  setPinState((prev) => {
+    const newState = { ...prev, [pin]: turnOn }; // Update pin state
+    console.log(`Updated pin state for pin ${pin}:`, turnOn); // Log the updated state for the specific pin
+    console.log(`Current pinState object:`, newState); // Log the entire pinState object
+    return newState;
+  });
+};
 
     // Add listeners for all digital pins from 0 to 13
     for (let pin = 0; pin <= 7; pin++) {
