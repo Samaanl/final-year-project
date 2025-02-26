@@ -73,7 +73,7 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
 
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`,
-    boxShadow: isActive ? `0 0 64px 21px ${color}` : 'none',
+    boxShadow: ledState ? `0 0 64px 21px ${color}` : 'none',
   };
 
   return (

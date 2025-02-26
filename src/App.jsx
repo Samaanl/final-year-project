@@ -648,11 +648,11 @@ for (let pin = 0; pin <= 7; pin++) {
     console.log(`Current pinState object before update:`, prev);
     const newState = { ...prev, [pin]: state }; // Update pin state for each pin
     // Set isActive based on the pin state
-    if (pin === 13) {
-      const pin13State = portB.pinState(pin - 8);
-      setIsActive(pinState[pin]); // Update isActive based on pin state
+    // if (pin === 13) {
+    //   const pin13State = portB.pinState(pin - 8);
+    //   // setIsActive(pinState[pin]); // Update isActive based on pin state
       setLedState(pinState[pin]); // Use the previously obtained state directly
-    }
+    
     return newState;
   });
 }
@@ -667,10 +667,10 @@ for (let pin = 8; pin <= 13; pin++) {
     return newState;
   });
   if (state) {
-    setIsActive(pinState[pin]); // Update isActive based on pin state
+    setLedState(pinState[pin]); // Update isActive based on pin state
     setLedState(pinState[pin]); // Use the previously obtained state directly
   } else {
-    setIsActive(false); // Deactivate the LED if the pin state is false
+    setLedState(false); // Deactivate the LED if the pin state is false
     setLedState(false); // Deactivate the LED if the pin state is false
   }
 }
