@@ -613,7 +613,16 @@ export default function App() {
       // Update LED state based on the current pin state
       if (pin === 13) {
         setIsActive(pinState[pin]); // Update isActive based on pin state
-        setLedState(pinState[pin]); // Set LED state based on pin state
+        ledStateRef.current=pinState[pin];
+        setLedState(true); // Always set LED state to true for pin 13
+        console.log(`LED state set to: ${pinState[pin]}`); // Debug log
+        console.log(`Current ledState after update: ${ledState}`); // Debug log to track ledState updates
+      } else {
+        if (pinState[pin]) {
+          setLedState(true); // Set LED state to true if pinState is true
+        } else {
+          setLedState(false); // Set LED state to false if pinState is false
+        }
       }
     };
 
@@ -645,7 +654,7 @@ for (let pin = 0; pin <= 7; pin++) {
     //   const pin13State = portB.pinState(pin - 8);
     //   // setIsActive(pinState[pin]); // Update isActive based on pin state
       setLedState(pinState[pin]); // Use the previously obtained state directly
-    
+      ledStateRef.current=pinState[pin]
     return newState;
   });
 }
@@ -661,10 +670,14 @@ for (let pin = 8; pin <= 13; pin++) {
   });
   if (state) {
     // setLedState(pinState[pin]); // Update isActive based on pin state
+    ledStateRef.current=pinState[pin]
     setLedState(pinState[pin]); // Use the previously obtained state directly
+    console.log(`Current ledState after update: ${ledState}`); // Debug log to track ledState updates
   } else {
-    // setLedState(false); // Deactivate the LED if the pin state is false
+    console.log(`LED state being set to false for pin: ${pin}`); // Debug log for false state
+    ledStateRef.current=false;
     setLedState(false); // Deactivate the LED if the pin state is false
+    console.log(`Current ledState after update: ${ledState}`); // Debug log to track ledState updates
   }
 }
       await new Promise((resolve) => setTimeout(resolve, 0));

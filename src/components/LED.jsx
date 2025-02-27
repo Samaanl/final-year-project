@@ -3,14 +3,14 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false }) => {
+const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false, pin }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef(null);
   const bulbRef = useRef(null);
   const [brightnessState, setBrightness] = useState(brightness);
-  const [ledState, setLedState] = useState(pinState);
+  const [ledState, setLedState] = useState(false);
 
   useEffect(() => {
     if (ledState) {
@@ -38,11 +38,23 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   }, [isConnected, ledState]);
 
   useEffect(() => {
+    if (pinState[pin]) {
+      setLedState(true);
+    }
+  }, [pinState, pin]);
+
+  useEffect(() => {
+    console.log(`ledState updated to: ${ledState}`); // Debug log
+  }, [ledState]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
+      console.log(`LED State: ${ledState}, Should Blink: ${shouldBlink}`); // Debug log
       if (ledState && shouldBlink) {
         console.log("LED is blinking");
+        setColor(prevColor => prevColor === 'yellow' ? 'red' : 'yellow'); // Toggle color for blinking effect
       }
-    }, 1000); // Change this interval as needed
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [ledState, shouldBlink]);
