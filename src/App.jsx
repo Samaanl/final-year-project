@@ -298,12 +298,7 @@ export default function App() {
                 id={`component-${idCounter}`}
                 pos={position}
                 onDelete={handleDeleteNode}
-                {...(isLEDComponent && { brightness: ledStateRef.current })}
-                {...(isLEDComponent && { ledStateRef: ledStateRef })}
-                {...(isLEDComponent && { shouldBlink: false })}
-                {...(isLEDComponent && { isConnected: false })}
                 {...(isLEDComponent && { pinState: pinState })}
-                {...(isLEDComponent && { isActive: isActive })}
               />
             ),
             width,
@@ -431,9 +426,7 @@ export default function App() {
                   component: React.cloneElement(node.data.component, {
                     isConnected: isProperlyConnected,
                     shouldBlink: isProperlyConnected,
-                    brightness: ledStateRef.current,
                     pinState: pinState,
-                    isActive: isActive,
                   }),
                 },
               };
@@ -616,11 +609,11 @@ export default function App() {
         console.log(`Current pinState object:`, newState); // Log the entire pinState object
         return newState;
       });
-
+    
       // Update LED state based on the current pin state
       if (pin === 13) {
         setIsActive(pinState[pin]); // Update isActive based on pin state
-        setLedState(pinState[pin]); // Use the previously obtained state directly
+        setLedState(pinState[pin]); // Set LED state based on pin state
       }
     };
 
@@ -667,10 +660,10 @@ for (let pin = 8; pin <= 13; pin++) {
     return newState;
   });
   if (state) {
-    setLedState(pinState[pin]); // Update isActive based on pin state
+    // setLedState(pinState[pin]); // Update isActive based on pin state
     setLedState(pinState[pin]); // Use the previously obtained state directly
   } else {
-    setLedState(false); // Deactivate the LED if the pin state is false
+    // setLedState(false); // Deactivate the LED if the pin state is false
     setLedState(false); // Deactivate the LED if the pin state is false
   }
 }

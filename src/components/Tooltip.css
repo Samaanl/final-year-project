@@ -40,3 +40,33 @@
     border-style: solid;
     border-color: #f0f0f0 transparent transparent transparent;
 }
+
+.blinking {
+  box-shadow: 0 0 64px 21px yellow;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.led {
+  width: 20px;
+  height: 20px;
+  background-color: red;
+  border-radius: 50%;
+  box-shadow: 0 0 64px 21px yellow;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.led.blinking {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% {
+    box-shadow: 0 0 64px 21px yellow;
+  }
+  50% {
+    box-shadow: none;
+  }
+  100% {
+    box-shadow: 0 0 64px 21px yellow;
+  }
+}

@@ -3,53 +3,44 @@ import { Handle, Position } from "@xyflow/react";
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
 
-const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, isConnected = false }) => {
-  const [isActive, setIsActive] = useState(false);
+const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef(null);
   const bulbRef = useRef(null);
   const [brightnessState, setBrightness] = useState(brightness);
-  const [ledState, setLedState] = useState(false);
+  const [ledState, setLedState] = useState(pinState);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        showInput &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target) &&
-        bulbRef.current &&
-        !bulbRef.current.contains(event.target)
-      ) {
-        setShowInput(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showInput]);
+    if (ledState) {
+      console.log("LED is active");
+    } else {
+      console.log("LED is inactive");
+    }
+  }, [ledState]);
 
   useEffect(() => {
-    setBrightness(brightness);
-  }, [brightness]);
+    console.log("Current pinState:", pinState); // Debugging line
+    console.log("PinState updated from:", pinState); // Additional debugging log
+    setLedState(pinState); // Update ledState based on pinState
+  }, [pinState]);
+
+  useEffect(() => {
+    console.log("Previous pinState:", pinState); // Additional debugging log
+    console.log("PinState updated to:", pinState); // Additional debugging log
+  }, [pinState]);
 
   useEffect(() => {
     if (isConnected) {
-      setLedState(ledStateRef.current);
-    } else {
-      setLedState(false);
+      console.log(`LED state updated:`, ledState);
     }
-  }, [isConnected, ledStateRef]);
+  }, [isConnected, ledState]);
 
   useEffect(() => {
-    console.log(`LED state updated:`, ledState);
-    console.log(`isActive value:`, isActive);
     const interval = setInterval(() => {
       if (ledState && shouldBlink) {
-        setLedState(prev => !prev); // Toggle LED state
+        console.log("LED is blinking");
       }
     }, 1000); // Change this interval as needed
 
@@ -79,10 +70,10 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
   return (
     <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
       <div
-        className={`relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${isActive ? 'active' : ''}`}
+        className={`relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${ledState ? 'active' : ''}`}
         style={style}
         ref={bulbRef}
-        onClick={handleClick}
+        onClick={() => setLedState(!ledState)}
       >
         <Handle
           type="target"
@@ -104,7 +95,6 @@ const LED = ({ id, pos, onDelete, brightness, ledStateRef, shouldBlink = false, 
             top: "116px",
           }}
         />
-
         <Handle
           type="target"
           position={Position.Right}
