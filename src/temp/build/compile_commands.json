@@ -53,6 +53,36 @@
    "-DARDUINO_ARCH_AVR",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard",
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\CDC.cpp",
+   "-o",
+   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\CDC.cpp.o"
+  ],
+  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\CDC.cpp"
+ },
+ {
+  "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
+  "arguments": [
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+   "-c",
+   "-g",
+   "-Os",
+   "-w",
+   "-std=gnu++11",
+   "-fpermissive",
+   "-fno-exceptions",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-fno-threadsafe-statics",
+   "-Wno-error=narrowing",
+   "-MMD",
+   "-flto",
+   "-mmcu=atmega328p",
+   "-DF_CPU=16000000L",
+   "-DARDUINO=10607",
+   "-DARDUINO_AVR_UNO",
+   "-DARDUINO_ARCH_AVR",
+   "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
+   "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard",
    "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\HardwareSerial.cpp",
    "-o",
    "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\HardwareSerial.cpp.o"
@@ -238,36 +268,6 @@
    "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\PluggableUSB.cpp.o"
   ],
   "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\PluggableUSB.cpp"
- },
- {
-  "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
-  "arguments": [
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
-   "-c",
-   "-g",
-   "-Os",
-   "-w",
-   "-std=gnu++11",
-   "-fpermissive",
-   "-fno-exceptions",
-   "-ffunction-sections",
-   "-fdata-sections",
-   "-fno-threadsafe-statics",
-   "-Wno-error=narrowing",
-   "-MMD",
-   "-flto",
-   "-mmcu=atmega328p",
-   "-DF_CPU=16000000L",
-   "-DARDUINO=10607",
-   "-DARDUINO_AVR_UNO",
-   "-DARDUINO_ARCH_AVR",
-   "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
-   "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard",
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\Print.cpp",
-   "-o",
-   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\Print.cpp.o"
-  ],
-  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\Print.cpp"
  },
  {
   "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
@@ -670,17 +670,20 @@
  {
   "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
   "arguments": [
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-gcc",
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
    "-c",
    "-g",
    "-Os",
    "-w",
-   "-std=gnu11",
+   "-std=gnu++11",
+   "-fpermissive",
+   "-fno-exceptions",
    "-ffunction-sections",
    "-fdata-sections",
+   "-fno-threadsafe-statics",
+   "-Wno-error=narrowing",
    "-MMD",
    "-flto",
-   "-fno-fat-lto-objects",
    "-mmcu=atmega328p",
    "-DF_CPU=16000000L",
    "-DARDUINO=10607",
@@ -688,11 +691,11 @@
    "-DARDUINO_ARCH_AVR",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard",
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\wiring_pulse.c",
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\Print.cpp",
    "-o",
-   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\wiring_pulse.c.o"
+   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\Print.cpp.o"
   ],
-  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\wiring_pulse.c"
+  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\Print.cpp"
  },
  {
   "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
@@ -724,20 +727,17 @@
  {
   "directory": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project",
   "arguments": [
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-gcc",
    "-c",
    "-g",
    "-Os",
    "-w",
-   "-std=gnu++11",
-   "-fpermissive",
-   "-fno-exceptions",
+   "-std=gnu11",
    "-ffunction-sections",
    "-fdata-sections",
-   "-fno-threadsafe-statics",
-   "-Wno-error=narrowing",
    "-MMD",
    "-flto",
+   "-fno-fat-lto-objects",
    "-mmcu=atmega328p",
    "-DF_CPU=16000000L",
    "-DARDUINO=10607",
@@ -745,10 +745,10 @@
    "-DARDUINO_ARCH_AVR",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
    "-IC:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard",
-   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\CDC.cpp",
+   "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\wiring_pulse.c",
    "-o",
-   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\CDC.cpp.o"
+   "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\core\\wiring_pulse.c.o"
   ],
-  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\CDC.cpp"
+  "file": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino\\wiring_pulse.c"
  }
 ]
