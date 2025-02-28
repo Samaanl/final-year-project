@@ -297,6 +297,7 @@ const [newPageName, setNewPageName] = useState("");
       // }
     }
 
+    //fetch data from db
     useEffect(() => {
       if (nodes.length === 0) {
         // Ensures it runs only if no nodes exist
@@ -315,6 +316,7 @@ const [newPageName, setNewPageName] = useState("");
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
+        
         <button
           style={{ backgroundColor: "red" }}
           onClick={() => {
@@ -459,7 +461,7 @@ const handleNewPageSubmit = () => {
   setPages([...pages, newPageId]); // Add the new page ID to the list of pages
   setPageCounter(pageCounter + 1); // Increment the page counter
   setIsModalOpen(false); // Hide the modal
-  // setNewPageName(""); // Clear the input value
+  setNewPageName(""); // Clear the input value
 };
 
   // Function to handle the removal of a page
@@ -568,13 +570,15 @@ const handleNewPageSubmit = () => {
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
 
+
+
       <Tabs style={{ height: "calc(100% - 40px)" }}>
         {" "}
         {/* Tabs component to manage multiple pages */}
         <TabList>
           {" "}
           {/* TabList component to display the list of tabs */}
-          {pages.map((pageId, index) => (
+          {pages.map((pageId) => (
             <Tab key={pageId}>
               {" "}
               {/* Tab component for each page */}
@@ -599,10 +603,10 @@ const handleNewPageSubmit = () => {
             </Tab>
           ))}
         </TabList>
-        {pages.map((pageId) => (
-          <TabPanel key={pageId} style={{ height: "100%", width: "100%" }}>
+        {pages.map((page) => (
+          <TabPanel key={page.Id} style={{ height: "100%", width: "100%" }}>
             {/* TabPanel component for each page */}
-            <Page pageId={pageId} removePage={handleRemovePage} />{" "}
+            <Page pageId={page.Id} removePage={handleRemovePage} />{" "}
             {/* Render the Page component */}
           </TabPanel>
         ))}
