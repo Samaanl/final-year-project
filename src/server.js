@@ -75,8 +75,19 @@ app.get("/getData", (req, res) => {
 });
 
 app.post("/insert", (req, res) => {
-  db.run("DELETE FROM users", (err) => {
-    const { proj,nodeName, x, y } = req.body;
+  const { proj, nodeName, x, y } = req.body;
+
+  console.log("proj", proj);
+
+  // First delete existing rows for this project
+  const deleteQuery = `DELETE FROM users WHERE proj = ?`;
+
+  db.run(deleteQuery, [proj[0]], (err) => {
+    if (err) {
+      console.error("Error deleting existing rows:", err.message);
+      res.status(500).json({ error: "Failed to delete existing rows" });
+      return;
+    }
 
     // Build placeholders like (?,?,?) for each item
     const placeholders = nodeName.map(() => "(?,?,?,?)").join(", ");
@@ -84,25 +95,25 @@ app.post("/insert", (req, res) => {
     // Flatten arrays into a single values array
     const values = [];
     for (let i = 0; i < nodeName.length; i++) {
-      values.push(proj[0],nodeName[i], String(x[i]), String(y[i]));
+      values.push(proj[0], nodeName[i], String(x[i]), String(y[i]));
     }
+
     const insertQuery = `
-        INSERT INTO users (proj,name, x, y)
-        VALUES ${placeholders};
-      `;
+      INSERT INTO users (proj,name, x, y)
+      VALUES ${placeholders};
+    `;
 
-      console.log("insertQuery", insertQuery);
-      console.log("values",values);
-
+    console.log("insertQuery", insertQuery);
+    console.log("values", values);
 
     db.run(insertQuery, values, (err) => {
       if (err) {
-        console.error("Error creating table:", err.message);
-        res.status(500).json({ error: "Failed to create table" });
+        console.error("Error inserting data:", err.message);
+        res.status(500).json({ error: "Failed to insert data" });
         return;
       }
 
-      res.json({ message: `Table created successfully at ${__dirname}` });
+      res.json({ message: `Data updated successfully at ${__dirname}` });
     });
   });
 });

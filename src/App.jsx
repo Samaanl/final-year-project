@@ -168,8 +168,8 @@ export default function App() {
   const [resultOfHex, setresultOfHex] = useState("nothing");
 
   // Add state to manage the modal visibility and input value
-const [isModalOpen, setIsModalOpen] = useState(false);
-const [newPageName, setNewPageName] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPageName, setNewPageName] = useState("");
 
   const [fetchData, setfetchData] = useState([]);
 
@@ -282,9 +282,6 @@ const [newPageName, setNewPageName] = useState("");
         }
       }
 
-
-
-
       // switch (data[0].name) {
       //   case "LED":
       //     addNode(LED, 100, 100,{ x: 100, y: 20 })
@@ -316,7 +313,6 @@ const [newPageName, setNewPageName] = useState("");
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
-        
         <button
           style={{ backgroundColor: "red" }}
           onClick={() => {
@@ -328,20 +324,26 @@ const [newPageName, setNewPageName] = useState("");
               alert(
                 `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
               );
-              
+
               nodeName.push(nodes[i].data.component.type.name);
               x.push(nodes[i].position.x);
               y.push(nodes[i].position.y);
             }
             project.push(newPageName);
-            // console.log("project", project);
+            // console.log("project si thioooooooos", project[0]);
             // console.log("nodeName", nodeName);
-            // console.log("x", x);
-            // console.log("y", y);
+            console.log("project name is", newPageName);
+            console.log("x", x);
+            console.log("y", y);
             fetch("http://localhost:3512/insert", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ proj:project, nodeName: nodeName, x: x, y: y }),
+              body: JSON.stringify({
+                proj: project,
+                nodeName: nodeName,
+                x: x,
+                y: y,
+              }),
             }).then((response) => {
               if (response.ok) {
                 alert("Data saved successfully");
@@ -393,7 +395,7 @@ const [newPageName, setNewPageName] = useState("");
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
           <p>display name: {}</p>
-          
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -455,14 +457,14 @@ const [newPageName, setNewPageName] = useState("");
   };
 
   // Function to handle the submission of the new page name
-const handleNewPageSubmit = () => {
-  // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-  const newPageId = `${newPageName}`;
-  setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-  setPageCounter(pageCounter + 1); // Increment the page counter
-  setIsModalOpen(false); // Hide the modal
-  setNewPageName(""); // Clear the input value
-};
+  const handleNewPageSubmit = () => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    const newPageId = `${newPageName}`;
+    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+    setPageCounter(pageCounter + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+  };
 
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
@@ -484,6 +486,7 @@ const handleNewPageSubmit = () => {
     };
   }, [handleNewPageClick]);
 
+  console.log("project name is now ", newPageName);
   const RunCode = async () => {
     // // If it's running, clicking the button will stop it
     // if (isRunning) {
@@ -560,17 +563,14 @@ const handleNewPageSubmit = () => {
             onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
             className="toolbar-button"
           >
-            
             <MdNoteAdd style={{ marginRight: "5px" }} />{" "}
             {/* Display a plus icon with margin */}
             New Page
           </button>
         </Tooltip>
-    
+
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
-
-
 
       <Tabs style={{ height: "calc(100% - 40px)" }}>
         {" "}
@@ -648,26 +648,27 @@ const handleNewPageSubmit = () => {
         </button>
       </Tabs>
 
-
       {/* Modal for entering the new page name */}
-    <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
-      <Modal.Header>Enter Project Name</Modal.Header>
-      <Modal.Body>
-        <TextInput
-          value={newPageName}
-          onChange={(e) => setNewPageName(e.target.value)}
-          placeholder="Project Name"
-        />
-      </Modal.Body>
-      <Modal.Footer>
-        {/* <Button onClick={handleNewPageSubmit}>Submit</Button> */}
-        <Button color="gray" onClick={handleNewPageSubmit}>Submit</Button>
+      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <Modal.Header>Enter Project Name</Modal.Header>
+        <Modal.Body>
+          <TextInput
+            value={newPageName}
+            onChange={(e) => setNewPageName(e.target.value)}
+            placeholder="Project Name"
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          {/* <Button onClick={handleNewPageSubmit}>Submit</Button> */}
+          <Button color="gray" onClick={handleNewPageSubmit}>
+            Submit
+          </Button>
 
-        <Button color="gray" onClick={() => setIsModalOpen(false)}>
-          Cancel
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          <Button color="gray" onClick={() => setIsModalOpen(false)}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
