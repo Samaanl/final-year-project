@@ -116,26 +116,16 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
 };
 
 let ArduinoCode = `void setup() {
-  // Set all digital pins as OUTPUT
-  for (int i = 2; i <= 13; i++) {
-    pinMode(i, OUTPUT);
-  }
+  pinMode(13, OUTPUT);
 }
 
 void loop() {
-  // Turn on all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, HIGH);
-    delay(500);
-  }
-  
-  // Turn off all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, LOW);
-    delay(500);
-  }
+  digitalWrite(13, HIGH);  
+  delay(1000);                      
+  digitalWrite(13, LOW);   
+  delay(1000);                      
 }
-`;
+  `;
 
 const beforeMount = (monaco) => {
   monaco.languages.register({ id: "arduino" });
@@ -331,123 +321,80 @@ export default function App() {
         setNodes((nds) =>
           nds.map((node) => {
             if (node.data.component.type.name === "LED") {
+              // Get the Arduino node and Resistor nodes
               const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
               const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
-              if (!resistors.length) return node;
+              if (!resistors.length || !arduinoNode) return node;
               
-              // Find the resistor that's connected to this LED
+              // Find resistor connected to LED's anode
               const connectedResistor = resistors.find(resistor => {
-                const ledToResistor = edges.find(
+                return edges.some(
                   edge => 
                     ((edge.source === node.id && edge.target === resistor.id &&
-                      edge.sourceHandle === "anode-source" && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
+                      edge.sourceHandle === "anode-source") ||
                     (edge.source === resistor.id && edge.target === node.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
                       edge.targetHandle === "anode-target"))
                 );
-                
-                if (!ledToResistor) return false;
-
-                // Check if resistor is connected to any digital pin
-                const resistorToArduino = edges.find(
-                  edge =>
-                    ((edge.source === resistor.id && edge.target === arduinoNode?.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
-                      edge.targetHandle.includes("handle-target-digital-")) ||
-                    (edge.source === arduinoNode?.id && edge.target === resistor.id &&
-                      edge.sourceHandle.includes("handle-source-digital-") && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")))
-                );
-
-                return Boolean(resistorToArduino);
               });
 
               // Check if cathode is connected to GND
-              const isCathodeConnectedToGND = Boolean(
-                edges.find(edge => 
+              const isCathodeConnectedToGND = edges.some(edge => 
                   (edge.source === node.id && 
-                    edge.target === arduinoNode?.id && 
-                    (edge.targetHandle === "handle-target-power-GND1" || 
-                      edge.targetHandle === "handle-target-power-GND2")) ||
+                   edge.target === arduinoNode?.id && 
+                 edge.sourceHandle === "cathode-source" &&
+                   (edge.targetHandle === "handle-target-power-GND1" || 
+                    edge.targetHandle === "handle-target-power-GND2")) ||
                   (edge.source === arduinoNode?.id && 
-                    edge.target === node.id && 
-                    (edge.sourceHandle === "handle-source-power-GND1" || 
-                      edge.sourceHandle === "handle-source-power-GND2"))
-                )
+                   edge.target === node.id && 
+                   (edge.sourceHandle === "handle-source-power-GND1" || 
+                  edge.sourceHandle === "handle-source-power-GND2") &&
+                 edge.targetHandle === "cathode-target")
               );
 
-              // Find which digital pin the LED is connected to (via resistor)
-              const pinConnections = edges.filter(edge => 
-                (edge.source === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.target === resistor.id && 
-                    edge.sourceHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                ) ||
-                (edge.target === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.source === resistor.id && 
-                    edge.targetHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                )
-              );
+              // Find which pin the resistor is connected to
+              let pinNumber = null;
+              if (connectedResistor) {
+                // Find edges between resistor and arduino
+                const resistorToArduinoEdge = edges.find(edge => 
+                  (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                  (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                );
 
-              const pinNumber = parseInt(
-                pinConnections.find(edge => edge.source === arduinoNode?.id)?.sourceHandle?.match(/\d+/)?.[0] || 
-                pinConnections.find(edge => edge.target === arduinoNode?.id)?.targetHandle?.match(/\d+/)?.[0]
-              );
+                if (resistorToArduinoEdge) {
+                  // Extract pin number from handle ID
+                  const handleId = resistorToArduinoEdge.source === arduinoNode.id 
+                    ? resistorToArduinoEdge.sourceHandle 
+                    : resistorToArduinoEdge.targetHandle;
+                  
+                  if (handleId && handleId.includes('digital-')) {
+                    pinNumber = parseInt(handleId.split('digital-')[1]);
+                    console.log(`LED ${node.id} connected to digital pin ${pinNumber}`);
+                  }
+                }
+              }
 
-              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
+              const isProperlyConnected = Boolean(connectedResistor) && 
+                                         isCathodeConnectedToGND && 
+                                         pinNumber !== null;
 
-              // Debug logs
-              console.log(`LED ${node.id} connection check:`, {
-                hasConnectedResistor: Boolean(connectedResistor),
-                isCathodeConnectedToGND,
-                pinNumber,
-                isProperlyConnected
+              console.log(`LED ${node.id} connection status:`, {
+                isConnected: isProperlyConnected,
+                pin: pinNumber,
+                pinState: pinNumber !== null ? pinState[pinNumber] : null
               });
-
-              // Log the pin state for debugging
-              if (isProperlyConnected) {
-                const currentPinState = pinState[pinNumber];
-                console.log(`Pin state for ${pinNumber}:`, currentPinState);
-              }
-
-              // Show connection status notifications
-              if (edges.find(edge => 
-                (edge.source === node.id && edge.sourceHandle === "anode-source") ||
-                (edge.target === node.id && edge.targetHandle === "anode-target")
-              ) && !connectedResistor) {
-                toast.warning(`Connect the LED's anode (longer leg) to any side of the resistor`, {
-                  icon: "⚡",
-                  toastId: `anode-${node.id}`,
-                  autoClose: 3000
-                });
-              }
-
-              if (edges.find(edge => 
-                (edge.source === node.id && edge.sourceHandle === "cathode-source") ||
-                (edge.target === node.id && edge.targetHandle === "cathode-target")
-              ) && !isCathodeConnectedToGND) {
-                toast.warning(`Connect the LED's cathode (shorter leg) to GND`, {
-                  icon: "⚡",
-                  toastId: `cathode-${node.id}`,
-                  autoClose: 3000
-                });
-              }
 
               // Show success notification only once when circuit is complete
               if (isProperlyConnected && !successNotificationShown[node.id]) {
-                toast.success(`Circuit complete! LED connected to pin ${pinNumber} - it will blink when pin is HIGH.`, {
+                toast.success(`Circuit complete! The LED is connected to pin ${pinNumber}`, {
                   icon: "💡",
                   toastId: `success-${node.id}`,
                   autoClose: 3000
                 });
                 setSuccessNotificationShown(prev => ({ ...prev, [node.id]: true }));
               }
+
+              // Check if the current pin state is true and the LED should be on
+              const isPinHigh = isProperlyConnected && pinNumber !== null && pinState[pinNumber] === true;
 
               return {
                 ...node,
@@ -457,7 +404,9 @@ export default function App() {
                     isConnected: isProperlyConnected,
                     shouldBlink: isProperlyConnected,
                     pinState: pinState,
-                    pin: pinNumber
+                    pin: pinNumber,
+                    // Force the LED to see this was updated even if object reference is the same
+                    _updateCounter: Date.now()
                   }),
                 },
               };
@@ -465,7 +414,7 @@ export default function App() {
             return node;
           })
         );
-      }, [edges, nodes, pinState]);
+      }, [edges, nodes, pinState, successNotificationShown]);
 
       const handleResistorValueChange = (id, value) => {
         setResistorValues((prev) => {
@@ -598,6 +547,14 @@ export default function App() {
         clearInterval(cpuLoopRef.current);
         cpuLoopRef.current = null;
       }
+      
+      // Reset all pin states when stopping
+      const resetPinState = {};
+      for (let pin = 0; pin <= 13; pin++) {
+        resetPinState[pin] = false;
+      }
+      setPinState(resetPinState);
+      
       return;
     }
     
@@ -624,55 +581,68 @@ export default function App() {
       const portB = new AVRIOPort(cpu, portBConfig);
       const timer = new AVRTimer(cpu, timer0Config);
 
-      // Log initial pin states
-      console.log("Initial pin states:");
-      for (let pin = 0; pin <= 13; pin++) {
-        console.log(`Pin ${pin}: ${pinState[pin]}`);
-      }
-
-      // Create a function to check all pin states and update React state
-      const updateAllPinStates = () => {
-        const newPinState = {};
-        
+      // Function to check if pin states have changed
+      const getPinStates = () => {
+        const states = {};
         // Check Port D pins (0-7)
         for (let pin = 0; pin <= 7; pin++) {
-          newPinState[pin] = portD.pinState(pin) === PinState.High;
+          states[pin] = portD.pinState(pin) === PinState.High;
         }
         
         // Check Port B pins (8-13)
         for (let pin = 0; pin <= 5; pin++) {
-          newPinState[pin + 8] = portB.pinState(pin) === PinState.High;
+          states[pin + 8] = portB.pinState(pin) === PinState.High;
         }
+        return states;
+      };
+      
+      // Update pin states
+      const updatePinStates = () => {
+        const newStates = getPinStates();
         
-        console.log("Updating all pin states:", newPinState);
-        setPinState(newPinState);
+        // Log each pin state for debugging
+        Object.entries(newStates).forEach(([pin, state]) => {
+          console.log(`Pin ${pin} hardware state: ${state}`);
+        });
+        
+        // Use functional update to ensure we're working with the latest state
+        setPinState(prevState => {
+          // Check if any pin state has changed
+          const hasChanges = Object.entries(newStates).some(
+            ([pin, state]) => prevState[pin] !== state
+          );
+          
+          if (hasChanges) {
+            console.log('Pin states changed, updating React state:', newStates);
+            return { ...newStates };
+          }
+          return prevState;
+        });
       };
 
-      // Add listeners for port changes
-      portD.addListener(updateAllPinStates);
-      portB.addListener(updateAllPinStates);
+      // Add listeners to detect pin changes immediately
+      portD.addListener(() => {
+        console.log('Port D change detected');
+        updatePinStates();
+      });
+      
+      portB.addListener(() => {
+        console.log('Port B change detected');
+        updatePinStates();
+      });
 
-      console.log("Starting CPU execution loop");
-      // Create a controlled execution loop with setInterval
+      // Set up a CPU execution loop
       cpuLoopRef.current = setInterval(() => {
+        // Execute a batch of instructions
         for (let i = 0; i < 50000; i++) {
           avrInstruction(cpu);
           cpu.tick();
         }
         
-        // Update all pin states after each execution batch
-        updateAllPinStates();
-        
-        // Log pin states periodically during execution
-        console.log("Pin states during execution:");
-        for (let pin = 0; pin <= 13; pin++) {
-          const portPin = pin < 8 ? pin : pin - 8;
-          const port = pin < 8 ? portD : portB;
-          const actualState = port.pinState(portPin) === PinState.High;
-          console.log(`Pin ${pin} hardware state: ${actualState}, React state: ${pinState[pin]}`);
-        }
+        // Update pin states after the execution batch
+        updatePinStates();
       }, 10);
-        
+      
     } catch (error) {
       console.error("Error running code:", error);
       setIsRunning(false);

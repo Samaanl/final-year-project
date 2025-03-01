@@ -1,11 +1,20 @@
 void setup() {
-  pinMode(13, OUTPUT);
+  // Set all digital pins as OUTPUT
+  for (int i = 2; i <= 13; i++) {
+    pinMode(i, OUTPUT);
+  }
 }
 
 void loop() {
-  digitalWrite(13, HIGH);  
-  delay(1000);                      
-  digitalWrite(13, LOW);   
-  delay(1000);                      
-}
+  // Turn on all pins one by one
+  for (int i = 2; i <= 13; i++) {
+    digitalWrite(i, HIGH);
+    delay(500);
+  }
   
+  // Turn off all pins one by one
+  for (int i = 2; i <= 13; i++) {
+    digitalWrite(i, LOW);
+    delay(500);
+  }
+}
