@@ -2,14 +2,18 @@
 #line 1 "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 #line 1 "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup();
-#line 8 "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch\\sketch.ino"
+#line 12 "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void loop();
 #line 1 "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup() {
   // Set all digital pins as OUTPUT
   for (int i = 2; i <= 13; i++) {
     pinMode(i, OUTPUT);
+    digitalWrite(i, LOW); // Start with all pins LOW
   }
+  
+  // Immediately set pin 13 HIGH to test LED
+  digitalWrite(13, HIGH);
 }
 
 void loop() {

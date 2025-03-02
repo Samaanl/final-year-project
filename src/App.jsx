@@ -119,7 +119,11 @@ let ArduinoCode = `void setup() {
   // Set all digital pins as OUTPUT
   for (int i = 2; i <= 13; i++) {
     pinMode(i, OUTPUT);
+    digitalWrite(i, LOW); // Start with all pins LOW
   }
+  
+  // Immediately set pin 13 HIGH to test LED
+  digitalWrite(13, HIGH);
 }
 
 void loop() {
@@ -186,10 +190,17 @@ export default function App() {
     11: false,
     12: false,
     13: false, 
-  }); // Add this state at the top
-  const [pages, setPages] = useState([]); // State to manage the list of pages
-  const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
-  const ledStateRef = useRef(false); // Ensure this is defined at the top
+  }); 
+  // Add a version counter to force re-renders when pin states change
+  const [pinStateVersion, setPinStateVersion] = useState(0);
+  // Add a ref to hold real-time hardware pin states that can be accessed directly by components
+  const realPinStatesRef = useRef({
+    0: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false,
+    8: false, 9: false, 10: false, 11: false, 12: false, 13: false
+  });
+  const [pages, setPages] = useState([]); 
+  const [pageCounter, setPageCounter] = useState(1); 
+  const ledStateRef = useRef(false); 
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
 
@@ -298,19 +309,28 @@ export default function App() {
       const addNode = (Component, width, height, initialData = {}, shouldBlink = false) => {
         const position = { x: 100, y: 100 };
         const isLEDComponent = Component.name === "LED";
+        
+        // Create component with all necessary props
+        const component = (
+          <Component
+            id={`component-${idCounter}`}
+            pos={position}
+            onDelete={handleDeleteNode}
+            pinState={pinState}
+            shouldBlink={shouldBlink}
+            isConnected={false}
+            pin={undefined}
+            realPinStatesRef={isLEDComponent ? realPinStatesRef : undefined}
+            {...initialData}
+          />
+        );
+        
         const newNode = {
           id: `${idCounter}`,
           type: "custom",
           position,
           data: {
-            component: (
-              <Component
-                id={`component-${idCounter}`}
-                pos={position}
-                onDelete={handleDeleteNode}
-                {...(isLEDComponent && { pinState: pinState })}
-              />
-            ),
+            component,
             width,
             height,
             ...initialData,
@@ -320,6 +340,7 @@ export default function App() {
             height,
           },
         };
+        
         setNodes((nds) => [...nds, newNode]);
         setIdCounter((prev) => prev + 1);
         console.log("Node added:", newNode);
@@ -328,6 +349,9 @@ export default function App() {
       const [successNotificationShown, setSuccessNotificationShown] = useState({});
 
       useEffect(() => {
+        console.log("Pin state updated in MemoizedPage:", pinState);
+        console.log("Pin state version:", pinStateVersion); // Log version changes
+        
         setNodes((nds) =>
           nds.map((node) => {
             if (node.data.component.type.name === "LED") {
@@ -368,12 +392,14 @@ export default function App() {
                 edges.find(edge => 
                   (edge.source === node.id && 
                     edge.target === arduinoNode?.id && 
+                    edge.sourceHandle === "cathode-source" && 
                     (edge.targetHandle === "handle-target-power-GND1" || 
-                      edge.targetHandle === "handle-target-power-GND2")) ||
+                     edge.targetHandle === "handle-target-power-GND2")) ||
                   (edge.source === arduinoNode?.id && 
                     edge.target === node.id && 
                     (edge.sourceHandle === "handle-source-power-GND1" || 
-                      edge.sourceHandle === "handle-source-power-GND2"))
+                     edge.sourceHandle === "handle-source-power-GND2") && 
+                     edge.targetHandle === "cathode-target")
                 )
               );
 
@@ -407,65 +433,49 @@ export default function App() {
                 hasConnectedResistor: Boolean(connectedResistor),
                 isCathodeConnectedToGND,
                 pinNumber,
-                isProperlyConnected
+                isProperlyConnected,
+                pinState: isProperlyConnected ? pinState[pinNumber] : undefined
               });
 
-              // Log the pin state for debugging
-              if (isProperlyConnected) {
-                const currentPinState = pinState[pinNumber];
-                console.log(`Pin state for ${pinNumber}:`, currentPinState);
-              }
+              // CRITICAL FIX: Force LED to acknowledge pin state on every update
+              const newPinState = {...pinState};
+              const actualPinState = pinNumber !== undefined ? pinState[pinNumber] : false;
+              
+              // Force recreation of component to ensure it gets the latest props
+              const clonedProps = {
+                ...node.data.component.props,
+                isConnected: isProperlyConnected,
+                shouldBlink: isProperlyConnected && actualPinState,
+                pinState: newPinState,
+                pin: pinNumber,
+                pinStateVersion: pinStateVersion, // Add version to force updates
+                forceUpdate: Date.now(), // Add timestamp to force re-render
+                key: `led-${node.id}-${Date.now()}-${pinStateVersion}`, // Include version in key
+                realPinStatesRef: realPinStatesRef, // Pass direct hardware pin states ref
+              };
+              
+              // Create new component with fresh props
+              const newComponent = React.createElement(
+                node.data.component.type,
+                clonedProps
+              );
+              
+              console.log(`RECREATING LED ${node.id} with pin ${pinNumber}, state:`, 
+                actualPinState ? "HIGH" : "LOW");
 
-              // Show connection status notifications
-              if (edges.find(edge => 
-                (edge.source === node.id && edge.sourceHandle === "anode-source") ||
-                (edge.target === node.id && edge.targetHandle === "anode-target")
-              ) && !connectedResistor) {
-                toast.warning(`Connect the LED's anode (longer leg) to any side of the resistor`, {
-                  icon: "⚡",
-                  toastId: `anode-${node.id}`,
-                  autoClose: 3000
-                });
-              }
-
-              if (edges.find(edge => 
-                (edge.source === node.id && edge.sourceHandle === "cathode-source") ||
-                (edge.target === node.id && edge.targetHandle === "cathode-target")
-              ) && !isCathodeConnectedToGND) {
-                toast.warning(`Connect the LED's cathode (shorter leg) to GND`, {
-                  icon: "⚡",
-                  toastId: `cathode-${node.id}`,
-                  autoClose: 3000
-                });
-              }
-
-              // Show success notification only once when circuit is complete
-              if (isProperlyConnected && !successNotificationShown[node.id]) {
-                toast.success(`Circuit complete! LED connected to pin ${pinNumber} - it will blink when pin is HIGH.`, {
-                  icon: "💡",
-                  toastId: `success-${node.id}`,
-                  autoClose: 3000
-                });
-                setSuccessNotificationShown(prev => ({ ...prev, [node.id]: true }));
-              }
-
+              // Create a new component instance with updated props
               return {
                 ...node,
                 data: {
                   ...node.data,
-                  component: React.cloneElement(node.data.component, {
-                    isConnected: isProperlyConnected,
-                    shouldBlink: isProperlyConnected,
-                    pinState: pinState,
-                    pin: pinNumber
-                  }),
+                  component: newComponent
                 },
               };
             }
             return node;
           })
         );
-      }, [edges, nodes, pinState]);
+      }, [edges, nodes, pinState, pinStateVersion]);
 
       const handleResistorValueChange = (id, value) => {
         setResistorValues((prev) => {
@@ -598,6 +608,15 @@ export default function App() {
         clearInterval(cpuLoopRef.current);
         cpuLoopRef.current = null;
       }
+      
+      // Reset all pin states to LOW when stopping
+      const resetPinState = {};
+      for (let pin = 0; pin <= 13; pin++) {
+        resetPinState[pin] = false;
+      }
+      setPinState(resetPinState);
+      setPinStateVersion(v => v + 1);
+      
       return;
     }
     
@@ -624,54 +643,77 @@ export default function App() {
       const portB = new AVRIOPort(cpu, portBConfig);
       const timer = new AVRTimer(cpu, timer0Config);
 
-      // Log initial pin states
-      console.log("Initial pin states:");
-      for (let pin = 0; pin <= 13; pin++) {
-        console.log(`Pin ${pin}: ${pinState[pin]}`);
-      }
-
-      // Create a function to check all pin states and update React state
-      const updateAllPinStates = () => {
-        const newPinState = {};
+      // CRITICAL FIX: Direct pin state update function
+      const directUpdatePinStates = () => {
+        // Create a fresh state object
+        const newPinStates = {};
         
-        // Check Port D pins (0-7)
+        // Read all pin states directly from hardware
         for (let pin = 0; pin <= 7; pin++) {
-          newPinState[pin] = portD.pinState(pin) === PinState.High;
+          newPinStates[pin] = portD.pinState(pin) === PinState.High;
         }
         
-        // Check Port B pins (8-13)
         for (let pin = 0; pin <= 5; pin++) {
-          newPinState[pin + 8] = portB.pinState(pin) === PinState.High;
+          newPinStates[pin + 8] = portB.pinState(pin) === PinState.High;
         }
         
-        console.log("Updating all pin states:", newPinState);
-        setPinState(newPinState);
+        // CRITICAL: Update the real-time ref with hardware pin states FIRST
+        // This happens synchronously and is immediately available to components
+        realPinStatesRef.current = {...newPinStates};
+        
+        console.log("DIRECT PIN STATE UPDATE:", JSON.stringify(newPinStates));
+        console.log("REAL-TIME HARDWARE REF UPDATED:", JSON.stringify(realPinStatesRef.current));
+        
+        // CRITICAL: Force React state update with NO COMPARISON - always set new state
+        setPinState(() => ({...newPinStates}));
+        
+        // CRITICAL: Always increment version to force all components to re-render
+        setPinStateVersion(v => v + 1);
+        
+        // Extra debug output showing hardware pin states
+        console.log("🔍 HARDWARE PIN STATES:");
+        for (let pin = 0; pin <= 13; pin++) {
+          const portPin = pin < 8 ? pin : pin - 8;
+          const port = pin < 8 ? portD : portB;
+          const hwState = port.pinState(portPin) === PinState.High;
+          console.log(`📌 Pin ${pin}: ${hwState ? "⚡ HIGH" : "⬇️ LOW"}`);
+        }
       };
+      
+      // Run initialization cycles
+      for (let i = 0; i < 200000; i++) {
+        avrInstruction(cpu);
+        cpu.tick();
+      }
+      
+      // Initialize pin states
+      directUpdatePinStates();
 
-      // Add listeners for port changes
-      portD.addListener(updateAllPinStates);
-      portB.addListener(updateAllPinStates);
+      // Add direct port listeners
+      portD.addListener(() => {
+        console.log("**PORT D CHANGED - DIRECT UPDATE**");
+        directUpdatePinStates();
+      });
+      
+      portB.addListener(() => {
+        console.log("**PORT B CHANGED - DIRECT UPDATE**");
+        directUpdatePinStates();
+      });
 
       console.log("Starting CPU execution loop");
-      // Create a controlled execution loop with setInterval
+      
+      // Main execution loop with more frequent updates
       cpuLoopRef.current = setInterval(() => {
-        for (let i = 0; i < 50000; i++) {
+        // Run a smaller batch of instructions for more responsive updates
+        for (let i = 0; i < 10000; i++) {
           avrInstruction(cpu);
           cpu.tick();
         }
         
-        // Update all pin states after each execution batch
-        updateAllPinStates();
+        // Always force pin state updates
+        directUpdatePinStates();
         
-        // Log pin states periodically during execution
-        console.log("Pin states during execution:");
-        for (let pin = 0; pin <= 13; pin++) {
-          const portPin = pin < 8 ? pin : pin - 8;
-          const port = pin < 8 ? portD : portB;
-          const actualState = port.pinState(portPin) === PinState.High;
-          console.log(`Pin ${pin} hardware state: ${actualState}, React state: ${pinState[pin]}`);
-        }
-      }, 10);
+      }, 30); // Run very frequently for better responsiveness
         
     } catch (error) {
       console.error("Error running code:", error);
