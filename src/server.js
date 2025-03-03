@@ -59,17 +59,40 @@ app.get("/", (req, res) => {
   res.json({ message: "hello this is from a server to desktop app" });
 });
 
-app.get("/getData", (req, res) => {
+app.get("/getAllProjects", (req, res) => {
   const selectQuery = `
-    SELECT proj,name, x, y FROM users
+    SELECT DISTINCT proj FROM users
   `;
 
-  db.all(selectQuery, (err, rows) => {
+  db.all(selectQuery, [], (err, rows) => {
+    if (err) {
+      console.error("Error fetching projects:", err.message);
+      res.status(500).json({ error: "Failed to fetch projects" });
+      return;
+    }
+    // Extract just the project names from the rows
+    const projectNames = rows.map((row) => row.proj);
+
+    res.json({ projects: projectNames });
+  });
+});
+
+app.get("/getData/:projectName", (req, res) => {
+  const projectName = req.params.projectName;
+
+  const selectQuery = `
+    SELECT proj, name, x, y 
+    FROM users 
+    WHERE proj = ?
+  `;
+
+  db.all(selectQuery, [projectName], (err, rows) => {
     if (err) {
       console.error("Error fetching data:", err.message);
       res.status(500).json({ error: "Failed to fetch data" });
       return;
     }
+
     res.json({ data: rows });
   });
 });

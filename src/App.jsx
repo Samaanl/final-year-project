@@ -166,7 +166,9 @@ export default function App() {
   const ledState13Ref = useRef(false); // Use useRef instead of useState
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
-
+  const [allProjNames, setallProjNames] = useState([]);
+  // Added a state to track the selected tab
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   // Add state to manage the modal visibility and input value
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPageName, setNewPageName] = useState("");
@@ -174,8 +176,26 @@ export default function App() {
   const [fetchData, setfetchData] = useState([]);
 
   // Add this state near your other state declarations
+  const [projectStates, setProjectStates] = useState({});
+
+  // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch all projects when the app loads
+    fetch("http://localhost:3512/getAllProjects")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.projects && data.projects.length > 0) {
+          setallProjNames(data.projects);
+          console.log("Project names loaded:", data.projects);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching project names:", error);
+      });
+  }, []);
 
   // Page component to handle each individual page
   const Page = ({ pageId, removePage }) => {
@@ -279,6 +299,9 @@ export default function App() {
           case "Breadboard":
             addNode(Breadboard, 1000, 50, { x: data[i].x, y: data[i].y });
             break;
+          case "ArduinoUnoR3":
+            addNode(ArduinoUnoR3, 1000, 50, { x: data[i].x, y: data[i].y });
+            break;
         }
       }
 
@@ -294,11 +317,12 @@ export default function App() {
       // }
     }
 
+    console.log("all the project  names displayed in array", allProjNames);
     //fetch data from db
     useEffect(() => {
       if (nodes.length === 0) {
         // Ensures it runs only if no nodes exist
-        fetch("http://127.0.0.1:3512/getData")
+        fetch(`http://127.0.0.1:3512/getData/${newPageName}`)
           .then((res) => res.json())
           .then((data) => {
             // setfetchData(data.data);
@@ -459,13 +483,24 @@ export default function App() {
   // Function to handle the submission of the new page name
   const handleNewPageSubmit = () => {
     // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    const newPageId = `${newPageName}`;
-    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+    // const newPageId = `${newPageName}`;
+    setPages([newPageName, ...pages]); // Add the new page ID to the list of pages
+
     setPageCounter(pageCounter + 1); // Increment the page counter
     setIsModalOpen(false); // Hide the modal
     // setNewPageName(""); // Clear the input value
   };
 
+  const handleNewPageSubmitExsistingProject = (proj) => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // const newPageId = `${newPageName}`;
+    setPages([proj, ...pages]); // Add the new page ID to the list of pages
+
+    setPageCounter((prev) => prev + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+  };
+  console.log("all pages", pages);
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
     setPages(pages.filter((id) => id !== pageId)); // Remove the page ID from the list of pages
@@ -572,7 +607,14 @@ export default function App() {
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
 
-      <Tabs style={{ height: "calc(100% - 40px)" }}>
+      <Tabs
+        style={{ height: "calc(100% - 40px)" }}
+        onSelect={(index) => {
+          setSelectedTabIndex(index);
+          console.log(`Tab clicked: ${pages[index]}`); // This gives you the pageId of the clicked tab
+          setNewPageName(pages[index]);
+        }}
+      >
         {" "}
         {/* Tabs component to manage multiple pages */}
         <TabList>
@@ -580,7 +622,6 @@ export default function App() {
           {/* TabList component to display the list of tabs */}
           {pages.map((pageId) => (
             <Tab key={pageId}>
-              {" "}
               {/* Tab component for each page */}
               {pageId} {/* Display the page number */}
               <button
@@ -647,7 +688,19 @@ export default function App() {
           {isRunning ? "STOP" : "RUN"}
         </button>
       </Tabs>
-
+      {allProjNames.map((proj) => (
+        <button
+          onClick={() => {
+            setNewPageName(proj);
+            // console.log("project name is now ", newPageName);
+            handleNewPageSubmitExsistingProject(proj);
+          }}
+          key={proj}
+          style={{ padding: "1rem", border: "1px solid #ccc" }}
+        >
+          {proj}
+        </button>
+      ))}
       {/* Modal for entering the new page name */}
       <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <Modal.Header>Enter Project Name</Modal.Header>
