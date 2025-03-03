@@ -1,7 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Button, Drawer } from "flowbite-react";
+import { Button, Drawer, Modal, TextInput } from "flowbite-react";
+import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
+import Editor from "@monaco-editor/react";
+// import Model from "./model.jsx";
 import {
   avrInstruction,
   AVRIOPort,
@@ -40,6 +43,7 @@ import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
+import { arduinoLanguageConfig } from "./editorSyntax.js";
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -122,6 +126,39 @@ void loop() {
   delay(1000);                      
 }
   `;
+
+const beforeMount = (monaco) => {
+  monaco.languages.register({ id: "arduino" });
+  monaco.languages.setLanguageConfiguration("arduino", {
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"],
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" },
+      { open: '"', close: '"' },
+      { open: "'", close: "'" },
+    ],
+  });
+
+  monaco.languages.registerCompletionItemProvider("arduino", {
+    provideCompletionItems: () => {
+      const suggestions = [
+        ...arduinoLanguageConfig.keywords.map((keyword) => ({
+          label: keyword,
+          kind: monaco.languages.CompletionItemKind.Keyword,
+          insertText: keyword,
+        })),
+        ...arduinoLanguageConfig.functions,
+      ];
+      return { suggestions };
+    },
+  });
+};
+
 // Main App component
 export default function App() {
   const [pages, setPages] = useState([]); // State to manage the list of pages
@@ -129,6 +166,36 @@ export default function App() {
   const ledState13Ref = useRef(false); // Use useRef instead of useState
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
+  const [allProjNames, setallProjNames] = useState([]);
+  // Added a state to track the selected tab
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  // Add state to manage the modal visibility and input value
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPageName, setNewPageName] = useState("");
+
+  const [fetchData, setfetchData] = useState([]);
+
+  // Add this state near your other state declarations
+  const [projectStates, setProjectStates] = useState({});
+
+  // Add this state near your other state declarations
+  const [isRunning, setIsRunning] = useState(false);
+  const cpuLoopRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch all projects when the app loads
+    fetch("http://localhost:3512/getAllProjects")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.projects && data.projects.length > 0) {
+          setallProjNames(data.projects);
+          console.log("Project names loaded:", data.projects);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching project names:", error);
+      });
+  }, []);
 
   // Page component to handle each individual page
   const Page = ({ pageId, removePage }) => {
@@ -138,6 +205,8 @@ export default function App() {
     const [selectedNode, setSelectedNode] = useState(null);
     const edgeReconnectSuccessful = useRef(true);
     const [resistorValues, setResistorValues] = useState({});
+
+    const getActiveNodesCount = () => nodes.length;
 
     const onReconnectStart = useCallback(() => {
       edgeReconnectSuccessful.current = false;
@@ -173,11 +242,13 @@ export default function App() {
       setResistorValues(storedValues);
     }, []);
 
-    const addNode = (Component, width, height, initialData = {}) => {
-      const position = { x: 100, y: 100 };
+    const addNode = (Component, width, height, pos, initialData = {}) => {
+      const position = { x: pos.x, y: pos.y };
       const isLEDComponent = Component.name === "LED";
+      const uniqueId = uuidv4(); // Generate a unique ID using uuid
+
       const newNode = {
-        id: `${idCounter}`,
+        id: uniqueId,
         type: "custom",
         position,
         data: {
@@ -210,42 +281,145 @@ export default function App() {
         return updatedValues;
       });
     };
+    function autoled(data) {
+      for (let i in data) {
+        switch (data[i].name) {
+          case "LED":
+            addNode(LED, 100, 100, { x: data[i].x, y: data[i].y });
+            break;
+          case "Resistor":
+            addNode(
+              Resistor,
+              100,
+              50,
+              { x: data[i].x, y: data[i].y },
+              { resistance: "" }
+            );
+            break;
+          case "Breadboard":
+            addNode(Breadboard, 1000, 50, { x: data[i].x, y: data[i].y });
+            break;
+          case "ArduinoUnoR3":
+            addNode(ArduinoUnoR3, 1000, 50, { x: data[i].x, y: data[i].y });
+            break;
+        }
+      }
 
+      // switch (data[0].name) {
+      //   case "LED":
+      //     addNode(LED, 100, 100,{ x: 100, y: 20 })
+      //     break;
+      //     case "Resistor":
+      //     addNode(Resistor, 100, 50,{ x: 100, y: 20 })
+      //     break;
+      //     default:
+      //     addNode(Breadboard, 100, 100,{ x: 100, y: 20 })
+      // }
+    }
+
+    console.log("all the project  names displayed in array", allProjNames);
+    //fetch data from db
+    useEffect(() => {
+      if (nodes.length === 0) {
+        // Ensures it runs only if no nodes exist
+        fetch(`http://127.0.0.1:3512/getData/${newPageName}`)
+          .then((res) => res.json())
+          .then((data) => {
+            // setfetchData(data.data);
+            // autoled();
+            console.log("autoled i have fetched data from db", data.data);
+            autoled(data.data);
+          });
+        // console.log("autoled i have fetched data from db");
+      }
+    }, []);
+
+    // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
+        <button
+          style={{ backgroundColor: "red" }}
+          onClick={() => {
+            let project = [];
+            let nodeName = [];
+            let x = [];
+            let y = [];
+            for (let i in nodes) {
+              alert(
+                `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
+              );
+
+              nodeName.push(nodes[i].data.component.type.name);
+              x.push(nodes[i].position.x);
+              y.push(nodes[i].position.y);
+            }
+            project.push(newPageName);
+            // console.log("project si thioooooooos", project[0]);
+            // console.log("nodeName", nodeName);
+            console.log("project name is", newPageName);
+            console.log("x", x);
+            console.log("y", y);
+            fetch("http://localhost:3512/insert", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                proj: project,
+                nodeName: nodeName,
+                x: x,
+                y: y,
+              }),
+            }).then((response) => {
+              if (response.ok) {
+                alert("Data saved successfully");
+              } else {
+                alert("Failed to save data");
+              }
+            });
+          }}
+        >
+          SAVE
+        </button>
         <div className="components-section">
           <h3 className="components-header">Components</h3>
           <button
-            onClick={() => addNode(LED, 100, 100)}
+            onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
             Add LED
           </button>
           <button
-            onClick={() => addNode(Resistor, 100, 50, { resistance: "" })}
+            onClick={() =>
+              addNode(Resistor, 100, 50, { x: 100, y: 100 }, { resistance: "" })
+            }
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Resistor
           </button>
           <button
-            onClick={() => addNode(Breadboard, 1000, 250)}
+            onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaBreadSlice style={{ marginRight: "5px" }} />
             Add Breadboard
           </button>
           <button
-            onClick={() => addNode(ArduinoUnoR3, 200, 150)}
+            onClick={() => addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
             Add Arduino Uno
           </button>
+          {
+            // autoled()
+          }
         </div>
 
         <div style={{ flex: 1 }}>
+          <p>Active Nodes: {getActiveNodesCount()}</p>
+          <p>display name: {}</p>
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -300,11 +474,33 @@ export default function App() {
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
-    const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-    setPageCounter(pageCounter + 1); // Increment the page counter
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+    // setPageCounter(pageCounter + 1); // Increment the page counter
+    setIsModalOpen(true); // Show the modal
   };
 
+  // Function to handle the submission of the new page name
+  const handleNewPageSubmit = () => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // const newPageId = `${newPageName}`;
+    setPages([newPageName, ...pages]); // Add the new page ID to the list of pages
+
+    setPageCounter(pageCounter + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+  };
+
+  const handleNewPageSubmitExsistingProject = (proj) => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // const newPageId = `${newPageName}`;
+    setPages([proj, ...pages]); // Add the new page ID to the list of pages
+
+    setPageCounter((prev) => prev + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+  };
+  console.log("all pages", pages);
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
     setPages(pages.filter((id) => id !== pageId)); // Remove the page ID from the list of pages
@@ -325,7 +521,15 @@ export default function App() {
     };
   }, [handleNewPageClick]);
 
+  console.log("project name is now ", newPageName);
   const RunCode = async () => {
+    // // If it's running, clicking the button will stop it
+    // if (isRunning) {
+    //   setIsRunning(false);
+    //   return;
+    // }
+    // setIsRunning(true);
+
     //compile the source code to arduino redable hex
     const response = await fetch("http://localhost:3512/compile", {
       method: "POST",
@@ -383,6 +587,7 @@ export default function App() {
   };
 
   console.log(`the hex is ${resultOfHex}`);
+  console.log("is running", isRunning);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <div className="toolbar">
@@ -398,20 +603,27 @@ export default function App() {
             New Page
           </button>
         </Tooltip>
+
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
 
-      <Tabs style={{ height: "calc(100% - 40px)" }}>
+      <Tabs
+        style={{ height: "calc(100% - 40px)" }}
+        onSelect={(index) => {
+          setSelectedTabIndex(index);
+          console.log(`Tab clicked: ${pages[index]}`); // This gives you the pageId of the clicked tab
+          setNewPageName(pages[index]);
+        }}
+      >
         {" "}
         {/* Tabs component to manage multiple pages */}
         <TabList>
           {" "}
           {/* TabList component to display the list of tabs */}
-          {pages.map((pageId, index) => (
+          {pages.map((pageId) => (
             <Tab key={pageId}>
-              {" "}
               {/* Tab component for each page */}
-              Page {index + 1} {/* Display the page number */}
+              {pageId} {/* Display the page number */}
               <button
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent the click event from propagating to the tab
@@ -432,21 +644,84 @@ export default function App() {
             </Tab>
           ))}
         </TabList>
-        {pages.map((pageId) => (
-          <TabPanel key={pageId} style={{ height: "100%", width: "100%" }}>
+        {pages.map((page) => (
+          <TabPanel key={page.Id} style={{ height: "100%", width: "100%" }}>
             {/* TabPanel component for each page */}
-            <Page pageId={pageId} removePage={handleRemovePage} />{" "}
+            <Page pageId={page.Id} removePage={handleRemovePage} />{" "}
             {/* Render the Page component */}
           </TabPanel>
         ))}
-        <textarea
+        {/* <textarea
           rows={30}
           style={{ width: "100%" }}
           value={defaultCode}
           onChange={(e) => setDefaultCode(e.target.value)}
-        ></textarea>
-        <button onClick={RunCode}>RUN</button>
+        ></textarea> */}
+        {/* <Editor language="jsx" value={defaultCode} onUpdate={setDefaultCode} /> */}
+        <Editor
+          height="50vh"
+          defaultLanguage="cpp"
+          defaultValue={defaultCode}
+          theme="vs-dark"
+          onChange={(value) => setDefaultCode(value)}
+          beforeMount={beforeMount}
+          options={{
+            minimap: { enabled: true },
+            fontSize: 14,
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: true,
+            snippetSuggestions: "inline",
+          }}
+        />
+        {/* <button onClick={() => RunCode()}>RUN</button> */}
+        <button
+          onClick={() => RunCode()}
+          style={{
+            backgroundColor: isRunning ? "#ff4444" : "#4CAF50",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          {isRunning ? "STOP" : "RUN"}
+        </button>
       </Tabs>
+      {allProjNames.map((proj) => (
+        <button
+          onClick={() => {
+            setNewPageName(proj);
+            // console.log("project name is now ", newPageName);
+            handleNewPageSubmitExsistingProject(proj);
+          }}
+          key={proj}
+          style={{ padding: "1rem", border: "1px solid #ccc" }}
+        >
+          {proj}
+        </button>
+      ))}
+      {/* Modal for entering the new page name */}
+      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <Modal.Header>Enter Project Name</Modal.Header>
+        <Modal.Body>
+          <TextInput
+            value={newPageName}
+            onChange={(e) => setNewPageName(e.target.value)}
+            placeholder="Project Name"
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          {/* <Button onClick={handleNewPageSubmit}>Submit</Button> */}
+          <Button color="gray" onClick={handleNewPageSubmit}>
+            Submit
+          </Button>
+
+          <Button color="gray" onClick={() => setIsModalOpen(false)}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

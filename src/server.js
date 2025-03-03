@@ -1,5 +1,5 @@
 import express from "express";
-
+import sqlite3 from "sqlite3";
 //new added starts
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -13,6 +13,31 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = 3512;
+
+//initialising database projName TEXT NOT NULL,
+const dbPath = path.join(__dirname, "database.sqlite");
+const dbExists = fs.existsSync(dbPath);
+const db = new sqlite3.Database(dbPath);
+
+if (!dbExists) {
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      proj TEXT NOT NULL,
+      name TEXT NOT NULL,
+      x TEXT NOT NULL,
+      y TEXT NOT NULL
+    )
+  `;
+
+  db.run(createTableQuery, (err) => {
+    if (err) {
+      console.error("Error creating table:", err.message);
+    } else {
+      console.log("Table created successfully");
+    }
+  });
+}
 
 app.use(bodyParser.json());
 app.use(cors()); // Enable Cross-Origin Resource Sharing
@@ -32,6 +57,88 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
   res.json({ message: "hello this is from a server to desktop app" });
+});
+
+app.get("/getAllProjects", (req, res) => {
+  const selectQuery = `
+    SELECT DISTINCT proj FROM users
+  `;
+
+  db.all(selectQuery, [], (err, rows) => {
+    if (err) {
+      console.error("Error fetching projects:", err.message);
+      res.status(500).json({ error: "Failed to fetch projects" });
+      return;
+    }
+    // Extract just the project names from the rows
+    const projectNames = rows.map((row) => row.proj);
+
+    res.json({ projects: projectNames });
+  });
+});
+
+app.get("/getData/:projectName", (req, res) => {
+  const projectName = req.params.projectName;
+
+  const selectQuery = `
+    SELECT proj, name, x, y 
+    FROM users 
+    WHERE proj = ?
+  `;
+
+  db.all(selectQuery, [projectName], (err, rows) => {
+    if (err) {
+      console.error("Error fetching data:", err.message);
+      res.status(500).json({ error: "Failed to fetch data" });
+      return;
+    }
+
+    res.json({ data: rows });
+  });
+});
+
+app.post("/insert", (req, res) => {
+  const { proj, nodeName, x, y } = req.body;
+
+  console.log("proj", proj);
+
+  // First delete existing rows for this project
+  const deleteQuery = `DELETE FROM users WHERE proj = ?`;
+
+  db.run(deleteQuery, [proj[0]], (err) => {
+    if (err) {
+      console.error("Error deleting existing rows:", err.message);
+      res.status(500).json({ error: "Failed to delete existing rows" });
+      return;
+    }
+
+    // Build placeholders like (?,?,?) for each item
+    const placeholders = nodeName.map(() => "(?,?,?,?)").join(", ");
+
+    // Flatten arrays into a single values array
+    const values = [];
+    for (let i = 0; i < nodeName.length; i++) {
+      values.push(proj[0], nodeName[i], String(x[i]), String(y[i]));
+    }
+
+    const insertQuery = `
+      INSERT INTO users (proj,name, x, y)
+      VALUES ${placeholders};
+    `;
+
+    console.log("insertQuery", insertQuery);
+    console.log("values", values);
+
+    db.run(insertQuery, values, (err) => {
+      if (err) {
+        console.error("Error inserting data:", err.message);
+        res.status(500).json({ error: "Failed to insert data" });
+        return;
+      }
+
+      res.json({ message: `Data updated successfully at ${__dirname}` });
+    });
+  });
 });
 
 app.get("/say", (req, res) => {
