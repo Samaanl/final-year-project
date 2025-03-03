@@ -1,13 +1,95 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { Handle, Position } from "@xyflow/react";
+import { createPortal } from 'react-dom';
 import Tooltip from "./Tooltip.jsx";
 import "./Tooltip.css";
+
+const ColorPicker = ({ id, color, onChange, onClose, position }) => {
+  const pickerRef = useRef(null);
+  const [canClose, setCanClose] = useState(false);
+  const [currentColor, setCurrentColor] = useState(color);
+  
+  // Set up the delayed ability to close
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCanClose(true);
+    }, 500); // Wait 500ms before allowing close
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!canClose) return; // Don't close if we're not ready
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        onChange(currentColor); // Apply the current color when closing
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [canClose, onClose, onChange, currentColor]);
+
+  const handleColorChange = (e) => {
+    const newColor = e.target.value;
+    setCurrentColor(newColor);
+    onChange(newColor);
+  };
+
+  return createPortal(
+    <div
+      ref={pickerRef}
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        zIndex: 9999,
+        backgroundColor: 'white',
+        padding: '10px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        border: '1px solid #ccc',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <input
+        type="color"
+        value={currentColor}
+        style={{
+          width: '120px',
+          height: '50px',
+          padding: '0',
+          border: 'none',
+          cursor: 'pointer',
+          backgroundColor: 'transparent'
+        }}
+        onChange={handleColorChange}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div style={{ 
+        fontSize: '12px', 
+        color: '#666',
+        textAlign: 'center',
+        userSelect: 'none'
+      }}>
+        Click outside to apply
+      </div>
+    </div>,
+    document.body
+  );
+};
 
 const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false, pin, pinStateVersion, realPinStatesRef }) => {
   const [size] = useState({ width: 48, height: 64 });
   const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
-  const [showInput, setShowInput] = useState(false);
-  const inputRef = useRef(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 });
   const bulbRef = useRef(null);
   const [ledState, setLedState] = useState(false);
   const [isBlinking, setIsBlinking] = useState(false);
@@ -112,13 +194,14 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
       clearInterval(blinkIntervalRef.current);
     }
     
-    // Set initial active color - use bright red for better visibility
-    setColor('#ff0000');
+    // Use the current LED color for blinking
+    const activeColor = color;
+    const dimColor = color === 'yellow' ? '#ffeb3b' : color;
     
-    // Create new blink interval with faster toggle for better visibility
+    // Create new blink interval with color-aware toggle
     blinkIntervalRef.current = setInterval(() => {
-      setColor(prevColor => prevColor === '#ff0000' ? '#ff9900' : '#ff0000');
-    }, 200); // Even faster blinking for better visibility
+      setColor(prevColor => prevColor === activeColor ? dimColor : activeColor);
+    }, 200);
   };
   
   // Function to stop blinking
@@ -131,14 +214,33 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
       clearInterval(blinkIntervalRef.current);
       blinkIntervalRef.current = null;
     }
-    
-    // Reset to default color
-    setColor('yellow');
   };
 
-  const handleClick = () => {
-    console.log(`LED ${id} clicked`);
-    setShowInput(true);
+  // Handle right-click on LED body
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Calculate position for color picker
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPickerPosition({
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY + 10
+    });
+    setShowColorPicker(true);
+  };
+
+  // Handle color change
+  const handleColorChange = (newColor) => {
+    console.log(`LED ${id} color changed to ${newColor}`);
+    setColor(newColor);
+    localStorage.setItem(`ledColor-${id}`, newColor);
+    
+    // If currently blinking, restart the blink effect with new color
+    if (isBlinking) {
+      clearInterval(blinkIntervalRef.current);
+      startBlinking();
+    }
   };
 
   // Get the real hardware pin state for this render
@@ -146,7 +248,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     realPinStatesRef.current[pin] || false : 
     (pinState && pinState[pin]) || false;
   
-  // Calculate style with shadow based on hardware pin state
+  // Calculate style with shadow based on hardware pin state and current color
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`,
     boxShadow: isConnected && hardwarePinState ? `0 0 80px 40px ${color}` : 'none',
@@ -155,15 +257,18 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     zIndex: 5
   };
 
-  // Additional style for the bulb to make it glow - use hardware pin state
+  // Additional style for the bulb to make it glow - use hardware pin state and current color
   const bulbStyle = {
     width: `${size.width}px`,
     height: `${size.height}px`,
-    backgroundColor: isConnected && hardwarePinState ? color : 'rgba(255,255,0,0.6)',
+    backgroundColor: color,
+    opacity: isConnected && hardwarePinState ? 1 : 0.8,
     position: "relative",
     zIndex: 10,
-    transition: "background-color 0.2s ease-in-out, filter 0.2s ease-in-out",
-    filter: isConnected && hardwarePinState ? 'brightness(1.8) contrast(1.2)' : 'brightness(0.8)'
+    transition: "all 0.2s ease-in-out",
+    filter: isConnected && hardwarePinState ? 'brightness(1.8) contrast(1.2)' : 'brightness(0.8)',
+    borderRadius: '50% 50% 0 0',
+    cursor: 'pointer'
   };
 
   console.log(`LED ${id} rendering with style:`, style);
@@ -177,15 +282,9 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   return (
     <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
       <div
-        className={`relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${isConnected && hardwarePinState ? 'active' : ''}`}
+        className={`relative flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${isConnected && hardwarePinState ? 'active' : ''}`}
         style={style}
         ref={bulbRef}
-        onClick={() => {
-          console.log(`LED ${id} bulb clicked`);
-          if (!isConnected) {
-            setColor(color === 'yellow' ? 'red' : 'yellow');
-          }
-        }}
       >
         <Handle
           type="target"
@@ -230,34 +329,25 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
 
         <div
           className="rounded-t-full shadow-md"
-          style={bulbStyle}
-          ref={bulbRef}
-          onClick={handleClick}
+          style={{
+            ...bulbStyle,
+            pointerEvents: 'all',
+            cursor: 'pointer'
+          }}
+          onContextMenu={handleContextMenu}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
         />
 
-        {showInput && (
-          <input
-            ref={inputRef}
-            type="color"
-            autoFocus
-            value={color}
-            className="absolute w-24 p-0.5 text-center bg-white border border-gray-300 rounded shadow-md"
-            style={{
-              top: `${size.height / 2 + 10}px`,
-              zIndex: 11,
-              height: '24px'
-            }}
-            onChange={(e) => {
-              const newColor = e.target.value;
-              console.log(`LED ${id} color changed to ${newColor}`);
-              setColor(newColor);
-              localStorage.setItem(`ledColor-${id}`, newColor);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                setShowInput(false);
-              }
-            }}
+        {showColorPicker && (
+          <ColorPicker
+            id={id}
+            color={color}
+            onChange={handleColorChange}
+            onClose={() => setShowColorPicker(false)}
+            position={pickerPosition}
           />
         )}
 

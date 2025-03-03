@@ -53,8 +53,11 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
   const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
 
   const handleClick = (e) => {
-    e.stopPropagation();
-    setShowDelete(true);
+    // Only show delete button if clicking on the node container itself, not its children
+    if (e.target === e.currentTarget) {
+      e.stopPropagation();
+      setShowDelete(true);
+    }
   };
 
   const handleDelete = (e) => {
@@ -82,9 +85,8 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
   if (isDeleted) return null; // Return null if the component is deleted
 
   return (
-    <>
+    <div onClick={handleClick} style={{ position: 'relative' }}>
       {React.cloneElement(data.component, {
-        onClick: handleClick,
         style: { zIndex: 1 },
         onDelete,
       })}
@@ -111,33 +113,33 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
           <FaTrash />
         </button>
       )}
-    </>
+    </div>
   );
 };
 
-let ArduinoCode = `void setup() {
-  // Set all digital pins as OUTPUT
-  for (int i = 2; i <= 13; i++) {
-    pinMode(i, OUTPUT);
-    digitalWrite(i, LOW); // Start with all pins LOW
-  }
-  
-  // Immediately set pin 13 HIGH to test LED
-  digitalWrite(13, HIGH);
+let ArduinoCode = `// Arduino code to blink two LEDs alternately
+// Connect one LED to pin 12 and another to pin 13
+
+int led1 = 12;  // First LED connected to digital pin 12
+int led2 = 13;  // Second LED connected to digital pin 13
+int delayTime = 50;  // Delay in milliseconds
+
+void setup() {
+  // Initialize both digital pins as outputs
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
 }
 
 void loop() {
-  // Turn on all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, HIGH);
-    delay(500);
-  }
+  // Turn on first LED, turn off second LED
+  digitalWrite(led1, HIGH);
+  digitalWrite(led2, LOW);
+  delay(delayTime);
   
-  // Turn off all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, LOW);
-    delay(500);
-  }
+  // Turn off first LED, turn on second LED
+  digitalWrite(led1, LOW);
+  digitalWrite(led2, HIGH);
+  delay(delayTime);
 }
 `;
 
@@ -321,6 +323,7 @@ export default function App() {
             isConnected={false}
             pin={undefined}
             realPinStatesRef={isLEDComponent ? realPinStatesRef : undefined}
+            style={{ pointerEvents: 'all' }}
             {...initialData}
           />
         );
@@ -338,6 +341,7 @@ export default function App() {
           style: {
             width,
             height,
+            pointerEvents: 'all'
           },
         };
         
@@ -658,30 +662,15 @@ export default function App() {
         }
         
         // CRITICAL: Update the real-time ref with hardware pin states FIRST
-        // This happens synchronously and is immediately available to components
         realPinStatesRef.current = {...newPinStates};
         
-        console.log("DIRECT PIN STATE UPDATE:", JSON.stringify(newPinStates));
-        console.log("REAL-TIME HARDWARE REF UPDATED:", JSON.stringify(realPinStatesRef.current));
-        
-        // CRITICAL: Force React state update with NO COMPARISON - always set new state
+        // CRITICAL: Force React state update with NO COMPARISON
         setPinState(() => ({...newPinStates}));
-        
-        // CRITICAL: Always increment version to force all components to re-render
         setPinStateVersion(v => v + 1);
-        
-        // Extra debug output showing hardware pin states
-        console.log("🔍 HARDWARE PIN STATES:");
-        for (let pin = 0; pin <= 13; pin++) {
-          const portPin = pin < 8 ? pin : pin - 8;
-          const port = pin < 8 ? portD : portB;
-          const hwState = port.pinState(portPin) === PinState.High;
-          console.log(`📌 Pin ${pin}: ${hwState ? "⚡ HIGH" : "⬇️ LOW"}`);
-        }
       };
       
       // Run initialization cycles
-      for (let i = 0; i < 200000; i++) {
+      for (let i = 0; i < 100000; i++) {  // Reduced initialization cycles
         avrInstruction(cpu);
         cpu.tick();
       }
@@ -702,10 +691,10 @@ export default function App() {
 
       console.log("Starting CPU execution loop");
       
-      // Main execution loop with more frequent updates
+      // Main execution loop with optimized timing
       cpuLoopRef.current = setInterval(() => {
         // Run a smaller batch of instructions for more responsive updates
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 1000; i++) {  // Reduced from 5,000 to 1,000 for more accurate timing
           avrInstruction(cpu);
           cpu.tick();
         }
@@ -713,7 +702,7 @@ export default function App() {
         // Always force pin state updates
         directUpdatePinStates();
         
-      }, 30); // Run very frequently for better responsiveness
+      }, 1); // Reduced from 15ms to 1ms for more precise timing
         
     } catch (error) {
       console.error("Error running code:", error);

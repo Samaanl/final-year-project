@@ -1,24 +1,24 @@
+// Arduino code to blink two LEDs alternately
+// Connect one LED to pin 12 and another to pin 13
+
+int led1 = 12;  // First LED connected to digital pin 12
+int led2 = 13;  // Second LED connected to digital pin 13
+int delayTime = 50;  // Reduced from 100ms to 50ms for even faster blinking in the simulation
+
 void setup() {
-  // Set all digital pins as OUTPUT
-  for (int i = 2; i <= 13; i++) {
-    pinMode(i, OUTPUT);
-    digitalWrite(i, LOW); // Start with all pins LOW
-  }
-  
-  // Immediately set pin 13 HIGH to test LED
-  digitalWrite(13, HIGH);
+  // Initialize both digital pins as outputs
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
 }
 
 void loop() {
-  // Turn on all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, HIGH);
-    delay(500);
-  }
+  // Turn on first LED, turn off second LED
+  digitalWrite(led1, HIGH);
+  digitalWrite(led2, LOW);
+  delay(delayTime);
   
-  // Turn off all pins one by one
-  for (int i = 2; i <= 13; i++) {
-    digitalWrite(i, LOW);
-    delay(500);
-  }
+  // Turn off first LED, turn on second LED
+  digitalWrite(led1, LOW);
+  digitalWrite(led2, HIGH);
+  delay(delayTime);
 }
