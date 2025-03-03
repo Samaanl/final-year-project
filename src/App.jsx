@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Drawer, Modal, TextInput } from "flowbite-react";
+
 import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
@@ -62,6 +63,8 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
     setIsDeleted(true); // Hide the component
     onDelete(id);
   };
+
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -144,6 +147,9 @@ const beforeMount = (monaco) => {
     ],
   });
 
+
+
+
   monaco.languages.registerCompletionItemProvider("arduino", {
     provideCompletionItems: () => {
       const suggestions = [
@@ -181,6 +187,32 @@ export default function App() {
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
+
+  // Add this function inside the App component
+  const handleDeleteProject = async (projectName) => {
+    if (window.confirm(`Are you sure you want to delete ${projectName}?`)) {
+      try {
+        const response = await fetch(`http://localhost:3512/deleteProject/${projectName}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          // Remove from local state
+          setallProjNames(prevProjects =>
+            prevProjects.filter(proj => proj !== projectName)
+          );
+          // Remove from pages if it's open
+          setPages(prevPages =>
+            prevPages.filter(page => page !== projectName)
+          );
+        } else {
+          console.error('Failed to delete project');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     // Fetch all projects when the app loads
@@ -334,6 +366,9 @@ export default function App() {
       }
     }, []);
 
+
+
+
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
@@ -418,7 +453,7 @@ export default function App() {
 
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
-          <p>display name: {}</p>
+          <p>display name: { }</p>
 
           <ReactFlow
             nodes={nodes}
@@ -589,7 +624,32 @@ export default function App() {
   console.log(`the hex is ${resultOfHex}`);
   console.log("is running", isRunning);
   return (
+
+
     <div style={{ width: "100vw", height: "100vh" }}>
+
+      <div className="project-list flex  gap-6">
+        {allProjNames.map((proj) => (
+          <div key={proj} className="project-item flex">
+            <button
+              onClick={() => {
+                setNewPageName(proj);
+                handleNewPageSubmitExsistingProject(proj);
+              }}
+              className="project-button bg-red-600 p-2"
+            >
+              {proj}
+            </button>
+            <button
+              onClick={() => handleDeleteProject(proj)}
+              className="delete-button bg-red-600 p-2"
+            >
+              <FaTrash />
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div className="toolbar">
         <Tooltip text="New Page (Ctrl+N)">
           {" "}
@@ -725,3 +785,4 @@ export default function App() {
     </div>
   );
 }
+
