@@ -242,12 +242,10 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
       startBlinking();
     }
   };
-
   // Get the real hardware pin state for this render
   const hardwarePinState = isConnected && pin !== undefined && realPinStatesRef && realPinStatesRef.current ? 
     realPinStatesRef.current[pin] || false : 
     (pinState && pinState[pin]) || false;
-  
   // Calculate style with shadow based on hardware pin state and current color
   const style = {
     transform: `translate(${pos.x}px, ${pos.y}px)`,
@@ -270,7 +268,6 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     borderRadius: '50% 50% 0 0',
     cursor: 'pointer'
   };
-
   console.log(`LED ${id} rendering with style:`, style);
   console.log(`LED ${id} current state - isConnected: ${isConnected}, ledState: ${ledState}, hardwarePinState: ${hardwarePinState}, pin: ${pin}`);
   
