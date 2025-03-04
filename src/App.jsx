@@ -35,6 +35,7 @@ import {
   FaLightbulb,
   FaMicrochip,
   FaBreadSlice,
+  FaSave,
 } from "react-icons/fa"; // Import Font Awesome icons
 import { MdNoteAdd } from "react-icons/md";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
@@ -63,8 +64,6 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
     setIsDeleted(true); // Hide the component
     onDelete(id);
   };
-
-
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -147,9 +146,6 @@ const beforeMount = (monaco) => {
     ],
   });
 
-
-
-
   monaco.languages.registerCompletionItemProvider("arduino", {
     provideCompletionItems: () => {
       const suggestions = [
@@ -189,27 +185,40 @@ export default function App() {
   const cpuLoopRef = useRef(null);
 
   // Add this function inside the App component
+  /**
+   * The function `handleDeleteProject` is used to delete a project by sending a DELETE request to a
+   * specified endpoint and updating local state accordingly.
+   * @returns The `handleDeleteProject` function returns `undefined`.
+   */
   const handleDeleteProject = async (projectName) => {
+    if (!projectName || projectName.trim() === "") {
+      console.error("No project name provided for deletion");
+      return;
+    }
+
     if (window.confirm(`Are you sure you want to delete ${projectName}?`)) {
       try {
-        const response = await fetch(`http://localhost:3512/deleteProject/${projectName}`, {
-          method: 'DELETE'
-        });
+        const response = await fetch(
+          `http://localhost:3512/deleteProject/${encodeURIComponent(projectName)}`,
+          {
+            method: "DELETE",
+          },
+        );
 
         if (response.ok) {
           // Remove from local state
-          setallProjNames(prevProjects =>
-            prevProjects.filter(proj => proj !== projectName)
+          setallProjNames((prevProjects) =>
+            prevProjects.filter((proj) => proj !== projectName),
           );
           // Remove from pages if it's open
-          setPages(prevPages =>
-            prevPages.filter(page => page !== projectName)
+          setPages((prevPages) =>
+            prevPages.filter((page) => page !== projectName),
           );
         } else {
-          console.error('Failed to delete project');
+          console.error("Failed to delete project");
         }
       } catch (error) {
-        console.error('Error deleting project:', error);
+        console.error("Error deleting project:", error);
       }
     }
   };
@@ -258,13 +267,13 @@ export default function App() {
 
     const onConnect = useCallback(
       (params) => setEdges((els) => addEdge(params, els)),
-      []
+      [],
     );
 
     const handleDeleteNode = (id) => {
       setNodes((nds) => nds.filter((node) => node.id !== id));
       setEdges((eds) =>
-        eds.filter((edge) => edge.source !== id && edge.target !== id)
+        eds.filter((edge) => edge.source !== id && edge.target !== id),
       );
     };
 
@@ -325,7 +334,7 @@ export default function App() {
               100,
               50,
               { x: data[i].x, y: data[i].y },
-              { resistance: "" }
+              { resistance: "" },
             );
             break;
           case "Breadboard":
@@ -352,7 +361,7 @@ export default function App() {
     console.log("all the project  names displayed in array", allProjNames);
     //fetch data from db
     useEffect(() => {
-      if (nodes.length === 0) {
+      if (nodes.length === 0 && newPageName) {
         // Ensures it runs only if no nodes exist
         fetch(`http://127.0.0.1:3512/getData/${newPageName}`)
           .then((res) => res.json())
@@ -361,19 +370,59 @@ export default function App() {
             // autoled();
             console.log("autoled i have fetched data from db", data.data);
             autoled(data.data);
+          })
+          // console.log("autoled i have fetched data from db");
+          .catch((err) => {
+            console.error("Error fetching data:", err);
           });
-        // console.log("autoled i have fetched data from db");
       }
-    }, []);
-
-
-
+    }, [newPageName]);
 
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
-        <button
-          style={{ backgroundColor: "red" }}
+          <div className="components-section">
+            <h3 className="components-header">Components</h3>
+            <button
+              onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
+              className="component-button"
+            >
+              <FaLightbulb style={{ marginRight: "5px" }} />
+              Add LED
+            </button>
+            <button
+              onClick={() =>
+                addNode(
+                  Resistor,
+                  100,
+                  50,
+                  { x: 100, y: 100 },
+                  { resistance: "" },
+                )
+              }
+              className="component-button"
+            >
+              <FaMicrochip style={{ marginRight: "5px" }} />
+              Add Resistor
+            </button>
+            <button
+              onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
+              className="component-button"
+            >
+              <FaBreadSlice style={{ marginRight: "5px" }} />
+              Add Breadboard
+            </button>
+            <button
+              onClick={() =>
+                addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })
+              }
+              className="component-button"
+            >
+              <FaMicrochip style={{ marginRight: "5px" }} />
+              Add Arduino Uno
+            </button>
+            <button
+          // style={{ backgroundColor: "#00509e" }}
           onClick={() => {
             let project = [];
             let nodeName = [];
@@ -381,7 +430,7 @@ export default function App() {
             let y = [];
             for (let i in nodes) {
               alert(
-                `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
+                `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`,
               );
 
               nodeName.push(nodes[i].data.component.type.name);
@@ -389,8 +438,6 @@ export default function App() {
               y.push(nodes[i].position.y);
             }
             project.push(newPageName);
-            // console.log("project si thioooooooos", project[0]);
-            // console.log("nodeName", nodeName);
             console.log("project name is", newPageName);
             console.log("x", x);
             console.log("y", y);
@@ -411,49 +458,16 @@ export default function App() {
               }
             });
           }}
+          className="component-button"
+          style={{ backgroundColor: "#4CAF50" }}
         >
-          SAVE
+          <FaSave style={{ marginRight: "5px" }} />
+          SAVE 
         </button>
-        <div className="components-section">
-          <h3 className="components-header">Components</h3>
-          <button
-            onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
-            className="component-button"
-          >
-            <FaLightbulb style={{ marginRight: "5px" }} />
-            Add LED
-          </button>
-          <button
-            onClick={() =>
-              addNode(Resistor, 100, 50, { x: 100, y: 100 }, { resistance: "" })
-            }
-            className="component-button"
-          >
-            <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Resistor
-          </button>
-          <button
-            onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
-            className="component-button"
-          >
-            <FaBreadSlice style={{ marginRight: "5px" }} />
-            Add Breadboard
-          </button>
-          <button
-            onClick={() => addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })}
-            className="component-button"
-          >
-            <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Arduino Uno
-          </button>
-          {
-            // autoled()
-          }
         </div>
-
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
-          <p>display name: { }</p>
+          <p>display name: {}</p>
 
           <ReactFlow
             nodes={nodes}
@@ -512,6 +526,7 @@ export default function App() {
     // const newPageId = `page-${pageCounter}`; // Generate a new page ID
     // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
     // setPageCounter(pageCounter + 1); // Increment the page counter
+    setNewPageName("");
     setIsModalOpen(true); // Show the modal
   };
 
@@ -519,6 +534,10 @@ export default function App() {
   const handleNewPageSubmit = () => {
     // const newPageId = `page-${pageCounter}`; // Generate a new page ID
     // const newPageId = `${newPageName}`;
+    if (!newPageName.trim()) {
+      alert("Please enter a project name");
+      return;
+    }
     setPages([newPageName, ...pages]); // Add the new page ID to the list of pages
 
     setPageCounter(pageCounter + 1); // Increment the page counter
@@ -624,36 +643,9 @@ export default function App() {
   console.log(`the hex is ${resultOfHex}`);
   console.log("is running", isRunning);
   return (
-
-
     <div style={{ width: "100vw", height: "100vh" }}>
-
-      <div className="project-list flex  gap-6">
-        {allProjNames.map((proj) => (
-          <div key={proj} className="project-item flex">
-            <button
-              onClick={() => {
-                setNewPageName(proj);
-                handleNewPageSubmitExsistingProject(proj);
-              }}
-              className="project-button bg-red-600 p-2"
-            >
-              {proj}
-            </button>
-            <button
-              onClick={() => handleDeleteProject(proj)}
-              className="delete-button bg-red-600 p-2"
-            >
-              <FaTrash />
-            </button>
-          </div>
-        ))}
-      </div>
-
       <div className="toolbar">
         <Tooltip text="New Page (Ctrl+N)">
-          {" "}
-          {/* Add Tooltip component */}
           <button
             onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
             className="toolbar-button"
@@ -675,11 +667,7 @@ export default function App() {
           setNewPageName(pages[index]);
         }}
       >
-        {" "}
-        {/* Tabs component to manage multiple pages */}
         <TabList>
-          {" "}
-          {/* TabList component to display the list of tabs */}
           {pages.map((pageId) => (
             <Tab key={pageId}>
               {/* Tab component for each page */}
@@ -706,18 +694,9 @@ export default function App() {
         </TabList>
         {pages.map((page) => (
           <TabPanel key={page.Id} style={{ height: "100%", width: "100%" }}>
-            {/* TabPanel component for each page */}
-            <Page pageId={page.Id} removePage={handleRemovePage} />{" "}
-            {/* Render the Page component */}
+            <Page pageId={page.Id} removePage={handleRemovePage} />
           </TabPanel>
         ))}
-        {/* <textarea
-          rows={30}
-          style={{ width: "100%" }}
-          value={defaultCode}
-          onChange={(e) => setDefaultCode(e.target.value)}
-        ></textarea> */}
-        {/* <Editor language="jsx" value={defaultCode} onUpdate={setDefaultCode} /> */}
         <Editor
           height="50vh"
           defaultLanguage="cpp"
@@ -733,7 +712,6 @@ export default function App() {
             snippetSuggestions: "inline",
           }}
         />
-        {/* <button onClick={() => RunCode()}>RUN</button> */}
         <button
           onClick={() => RunCode()}
           style={{
@@ -748,7 +726,54 @@ export default function App() {
           {isRunning ? "STOP" : "RUN"}
         </button>
       </Tabs>
-      {allProjNames.map((proj) => (
+      <div
+        className="project-list flex gap-6"
+        style={{
+          marginTop: "20px",
+          border: "1px solid #ccc",
+          padding: "10px",
+          borderRadius: "8px",
+        }}
+      >
+        {allProjNames
+          .filter((proj) => proj && proj.trim() !== "")
+          .map((proj) => (
+            <div
+              key={proj}
+              className="project-item flex"
+              style={{
+                border: "1px solid #ddd",
+                padding: "10px",
+                borderRadius: "8px",
+              }}
+            >
+              <button
+                onClick={() => {
+                  setNewPageName(proj);
+                  handleNewPageSubmitExsistingProject(proj);
+                }}
+                // className="project-button bg-slate-400 p-2"
+                key={proj}
+                style={{ marginRight: "10px" }}
+              >
+                {proj}
+              </button>
+              <button
+                onClick={() => handleDeleteProject(proj)}
+                className="delete-button"
+                style={{
+                  color: "red",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <FaTrash />
+              </button>
+            </div>
+          ))}
+      </div>
+      {/* {allProjNames.map((proj) => (
         <button
           onClick={() => {
             setNewPageName(proj);
@@ -760,15 +785,23 @@ export default function App() {
         >
           {proj}
         </button>
-      ))}
+      ))} */}
       {/* Modal for entering the new page name */}
-      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      <Modal
+        show={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setNewPageName("");
+        }}
+      >
         <Modal.Header>Enter Project Name</Modal.Header>
         <Modal.Body>
           <TextInput
+            key={`input-${isModalOpen}`}
             value={newPageName}
             onChange={(e) => setNewPageName(e.target.value)}
             placeholder="Project Name"
+            autoFocus
           />
         </Modal.Body>
         <Modal.Footer>
@@ -785,4 +818,3 @@ export default function App() {
     </div>
   );
 }
-
