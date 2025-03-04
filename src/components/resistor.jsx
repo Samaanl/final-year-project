@@ -63,12 +63,12 @@ export function Resistor(props) {
   return (
     <Tooltip text="Resistor: A resistor is a passive electrical component that limits or regulates the flow of electrical current in an electronic circuit.">
       <div
-        className="resistor"
+        className="resistor-textbox relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
         style={style}
-        ref={resistorRef} // Add reference to resistor body
-        onClick={handleClick} // Handle click to show input field
-        onMouseEnter={() => setShowResistance(true)} // Show resistance value on hover
-        onMouseLeave={() => setShowResistance(false)} // Hide resistance value when not hovering
+        ref={resistorRef}
+        onClick={handleClick}
+        onMouseEnter={() => setShowResistance(true)}
+        onMouseLeave={() => setShowResistance(false)}
       >
         <div
           ref={setNodeRef}
@@ -87,6 +87,7 @@ export function Resistor(props) {
               left: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
+              zIndex: 10, // Higher z-index to appear over the lead
             }}
           />
           <Handle
@@ -98,6 +99,7 @@ export function Resistor(props) {
               left: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
+              zIndex: 10, // Higher z-index to appear over the lead
             }}
           />
 
@@ -109,8 +111,9 @@ export function Resistor(props) {
             className="w-4 h-4 bg-red-500 rounded-full"
             style={{
               right: `-${size.width / 2 + 15}px`,
-              top: '50%',
+              top: '50%', // Back to center alignment
               transform: 'translateY(-50%)',
+              zIndex: 10, // Higher z-index to appear over the lead
             }}
           />
           <Handle
@@ -120,8 +123,9 @@ export function Resistor(props) {
             className="w-4 h-4 bg-red-500 rounded-full"
             style={{
               right: `-${size.width / 2 + 15}px`,
-              top: '50%',
+              top: '50%', // Back to center alignment
               transform: 'translateY(-50%)',
+              zIndex: 10, // Higher z-index to appear over the lead
             }}
           />
 
@@ -169,16 +173,17 @@ export function Resistor(props) {
               right: `-${size.width / 2 + 10}px`,
             }}
           />
+          
           {showInput && (
             <input
-              ref={inputRef} // Add reference to input field
+              ref={inputRef}
               type="text"
               value={resistance}
               onChange={handleInputChange}
-              onKeyDown={handleInputKeyDown} // Hide input field when Enter is pressed
+              onKeyDown={handleInputKeyDown}
               style={{
                 position: 'absolute',
-                top: '-25px',
+                top: `${size.height / 2 + 5}px`, // Changed to dynamic calculation
                 width: '60px',
                 textAlign: 'center',
               }}
@@ -188,7 +193,7 @@ export function Resistor(props) {
             <div
               style={{
                 position: 'absolute',
-                top: '-25px', // Same position as input field
+                top: `${size.height / 2 + 5}px`,
                 width: '60px',
                 textAlign: 'center',
                 backgroundColor: 'white',

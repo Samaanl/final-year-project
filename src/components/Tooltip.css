@@ -1,42 +1,64 @@
 .tooltip-container {
-    position: relative;
-    display: inline-block;
-  }
-
-    .tooltip-text {
-    visibility: hidden;
-    background-color: #f0f0f0;
-    color: #333;
-    text-align: center;
-    border-radius: 12px;
-    padding: 10px;
-    position: absolute;
-    z-index: 1;
-    bottom: 0%; /* Position above the element */
-    left: 50%;
-    transform: translateX(-50%);
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    font-family: 'Arial', sans-serif;
-    font-size: 14px;
-    border: 2px solid #ccc;
-    white-space: nowrap;
-  }
-  
-  .tooltip-container:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-    transform: translateX(-50%) translateY(-10px);
-  }
-  
-  .tooltip-text::after {
-    content: '';
-    position: absolute;
-    top: 100%; /* Arrow at the bottom */
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 6px;
-    border-style: solid;
-    border-color: #f0f0f0 transparent transparent transparent;
+  position: relative;
+  display: inline-block;
+  transform-style: preserve-3d; /* Helps with z-index stacking */
 }
+
+.tooltip-text {
+  visibility: hidden;
+  background-color: #f0f0f0;
+  color: #333;
+  text-align: center;
+  border-radius: 12px;
+  padding: 10px;
+  position: absolute;
+  z-index: 100;
+  width: max-content;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  margin-bottom: 8px;
+  transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  border: 2px solid #ccc;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  /* Arrow at the bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #f0f0f0 transparent transparent transparent;
+}
+
+/* .tooltip-container .arduino-uno-r3 .tooltip-text {
+  left: 70%;
+  top: 120%; 
+  bottom: auto; 
+  transform: translateX(-50%); 
+}
+
+
+
+.tooltip-container .resistor-textbox .tooltip-text {
+  left: 70%;
+  top: 120%; 
+  bottom: auto;
+  transform: translateX(-50%);
+} */
+

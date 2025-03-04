@@ -14,7 +14,8 @@ export function ArduinoUnoR3(props) {
 
   const style = {
     transform: `translate(${props.pos.x}px, ${props.pos.y}px)`,
-    width: "503px",
+    position: "absolute",
+    zIndex: 1,
   };
 
   const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
@@ -48,7 +49,8 @@ export function ArduinoUnoR3(props) {
         left: `${left}px`,
         width: `${width}px`,
         height: `${height}px`,
-        display: "flex",
+        position: "absolute",
+        transform: "none",
         alignItems: "center",
         justifyContent: "center",
       }}
@@ -59,7 +61,7 @@ export function ArduinoUnoR3(props) {
         type="source"
         position={Position.Right}
         id={`handle-source-${pinId}`}
-        className="w-2 h-2 rounded-full"
+        className="w-5 h-5 rounded-full opacity-0"
         style={{
           position: "absolute",
           top: "50%",
@@ -72,7 +74,7 @@ export function ArduinoUnoR3(props) {
         type="target"
         position={Position.Right}
         id={`handle-target-${pinId}`}
-        className="w-2 h-2 rounded-full"
+        className="w-5 h-5 rounded-full opacity-0"
         style={{
           position: "absolute",
           top: "50%",
@@ -142,13 +144,12 @@ export function ArduinoUnoR3(props) {
 
   return (
     <Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">
-      <div className="arduino-uno-r3" style={style}>
+      <div className="arduino-uno-r3 relative cursor-pointer flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl mx-4 w-3" 
+      style={style}>
         <div
           ref={setNodeRef}
-          style={style}
           {...listeners}
           {...attributes}
-          className="relative cursor-pointer transition-all duration-300 hover:shadow-2xl"
         >
           <style>{`
         .react-flow__node {

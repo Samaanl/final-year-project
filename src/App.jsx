@@ -24,6 +24,7 @@ import {
   reconnectEdge,
   useEdgesState,
   addEdge,
+  MarkerType,
 } from "@xyflow/react";
 import { LED } from "./components/LED.jsx";
 import { Resistor } from "./components/resistor.jsx";
@@ -41,9 +42,28 @@ import "react-tabs/style/react-tabs.css";
 import "@xyflow/react/dist/style.css";
 import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
-import "./Toolbar.css"; // Import the new CSS file
+import "./Toolbar.css";
+import "./Modal.css";
 import "./components/ComponentsSection.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
+
+// Add CSS for edge hover effect
+import './edge-styles.css';
+
+// Add styles for resize handle
+const resizeStyles = `
+  .resize-handle {
+    transition: background-color 0.2s;
+  }
+
+  .resize-handle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .resize-active {
+    background-color: rgba(0, 120, 215, 0.5) !important;
+  }
+`;
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -166,6 +186,9 @@ export default function App() {
   const ledState13Ref = useRef(false); // Use useRef instead of useState
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
+  const [isEditorVisible, setIsEditorVisible] = useState(false); // Add state for editor visibility
+  const [editorWidth, setEditorWidth] = useState(40); // Track editor width as percentage
+  const [isResizing, setIsResizing] = useState(false); // Track if currently resizing
 
   // Add state to manage the modal visibility and input value
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -177,6 +200,45 @@ export default function App() {
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
 
+  // Resize handlers for the editor
+  const handleResizeStart = (e) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+  
+  const handleResizeMove = (e) => {
+    if (!isResizing) return;
+    
+    // Calculate width based on window width and mouse position
+    const windowWidth = window.innerWidth;
+    const mouseX = e.clientX;
+    
+    // Convert to percentage of window width
+    const newWidth = ((windowWidth - mouseX) / windowWidth) * 100;
+    
+    // Constrain width between 20% and 70%
+    if (newWidth >= 20 && newWidth <= 70) {
+      setEditorWidth(newWidth);
+    }
+  };
+  
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+  };
+  
+  // Add event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMove);
+      window.addEventListener('mouseup', handleResizeEnd);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleResizeMove);
+      window.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [isResizing]);
+
   // Page component to handle each individual page
   const Page = ({ pageId, removePage }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -185,6 +247,10 @@ export default function App() {
     const [selectedNode, setSelectedNode] = useState(null);
     const edgeReconnectSuccessful = useRef(true);
     const [resistorValues, setResistorValues] = useState({});
+    const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+
+    const [selectedEdge, setSelectedEdge] = useState(null);
+    const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
 
     const getActiveNodesCount = () => nodes.length;
 
@@ -311,10 +377,131 @@ export default function App() {
     }, []);
 
     // console.log("fetchData", fetchData);
+
+    const defaultEdgeOptions = {
+      style: {
+        strokeWidth: 3,
+        stroke: '#666',
+      },
+      type: 'smoothstep',
+      animated: false,
+    };
+
+    const connectionLineStyle = {
+      strokeWidth: 3,
+      stroke: '#666',
+    };
+
+    // Add this new edge click handler
+    const onEdgeClick = useCallback((event, edge) => {
+      event.stopPropagation();
+
+      // Remove 'selected' class from all edges
+      document.querySelectorAll('.react-flow__edge').forEach(el => {
+        el.classList.remove('selected');
+      });
+
+      // Get edge element and calculate center position
+      const edgeElement = document.querySelector(`[data-testid="rf__edge-${edge.id}"]`);
+      if (edgeElement) {
+        // Add 'selected' class to the clicked edge
+        edgeElement.classList.add('selected');
+
+        const rect = edgeElement.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+
+        setColorPickerPosition({ x, y });
+        setSelectedEdge(edge);
+      }
+    }, []);
+
+    // Add cleanup function to the useEffect
+    useEffect(() => {
+      return () => {
+        // Clean up 'selected' class from all edges when component unmounts
+        document.querySelectorAll('.react-flow__edge').forEach(el => {
+          el.classList.remove('selected');
+        });
+      };
+    }, []);
+
+    // Update color change handler to the simpler version
+    const handleColorChange = useCallback((color) => {
+      setEdges((eds) =>
+        eds.map((ed) => {
+          if (ed.id === selectedEdge.id) {
+            return {
+              ...ed,
+              style: { ...ed.style, stroke: color },
+            };
+          }
+          return ed;
+        })
+      );
+    }, [selectedEdge, setEdges]);
+
+    // Add click outside handler
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (!event.target.closest('.color-picker-container') &&
+          !event.target.closest('.react-flow__edge')) {
+          setSelectedEdge(null);
+          // Remove selected class from all edges
+          document.querySelectorAll('.react-flow__edge').forEach(el => {
+            el.classList.remove('selected');
+          });
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Update ColorPicker component to remove the color preset buttons
+    const ColorPicker = () => {
+      if (!selectedEdge) return null;
+
+      return (
+        <div
+          className="color-picker-container"
+          style={{
+            position: 'fixed',
+            left: `${colorPickerPosition.x}px`,
+            top: `${colorPickerPosition.y}px`,
+            transform: 'translate(-50%, -50%)',
+            background: 'white',
+            padding: '8px',
+            borderRadius: '4px',
+            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}
+        >
+
+          <input
+            type="color"
+            value={selectedEdge?.style?.stroke || '#666'}
+            onChange={(e) => handleColorChange(e.target.value)}
+            style={{
+              width: '24px',
+              height: '24px',
+              padding: 0,
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          />
+        </div>
+      );
+    };
+
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
+        {/* Save button */}
         <button
-          style={{ backgroundColor: "red" }}
+          className="save-button"
           onClick={() => {
             let project = [];
             let nodeName = [];
@@ -330,8 +517,6 @@ export default function App() {
               y.push(nodes[i].position.y);
             }
             project.push(newPageName);
-            // console.log("project si thioooooooos", project[0]);
-            // console.log("nodeName", nodeName);
             console.log("project name is", newPageName);
             console.log("x", x);
             console.log("y", y);
@@ -355,14 +540,22 @@ export default function App() {
         >
           SAVE
         </button>
-        <div className="components-section">
+
+        {/* Fixed Component Panel */}
+        <div className={`components-section ${isPanelCollapsed ? 'collapsed' : ''}`}>
+          <button
+            className="collapse-button"
+            onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+          >
+            {isPanelCollapsed ? '→' : '←'}
+          </button>
           <h3 className="components-header">Components</h3>
           <button
             onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
-            Add LED
+            {!isPanelCollapsed && <span>Add LED</span>}
           </button>
           <button
             onClick={() =>
@@ -371,30 +564,27 @@ export default function App() {
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Resistor
+            {!isPanelCollapsed && <span>Add Resistor</span>}
           </button>
           <button
             onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaBreadSlice style={{ marginRight: "5px" }} />
-            Add Breadboard
+            {!isPanelCollapsed && <span>Add Breadboard</span>}
           </button>
           <button
             onClick={() => addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })}
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
-            Add Arduino Uno
+            {!isPanelCollapsed && <span>Add Arduino Uno</span>}
           </button>
-          {
-            // autoled()
-          }
         </div>
 
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
-          <p>display name: {}</p>
+          <p>display name: { }</p>
 
           <ReactFlow
             nodes={nodes}
@@ -402,6 +592,10 @@ export default function App() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            defaultEdgeOptions={defaultEdgeOptions}
+            connectionLineStyle={connectionLineStyle}
+            connectionLineType="smoothstep"
+            fitView
             nodeTypes={{
               custom: (props) => (
                 <CustomNode
@@ -411,7 +605,14 @@ export default function App() {
                 />
               ),
             }}
-            onPaneClick={() => setSelectedNode(null)}
+            onPaneClick={() => {
+              setSelectedNode(null);
+              setSelectedEdge(null);
+              // Remove selected class from all edges
+              document.querySelectorAll('.react-flow__edge').forEach(el => {
+                el.classList.remove('selected');
+              });
+            }}
             proOptions={{
               hideAttribution: true,
             }}
@@ -419,14 +620,14 @@ export default function App() {
             onReconnect={onReconnect}
             onReconnectStart={onReconnectStart}
             onReconnectEnd={onReconnectEnd}
-            fitView
+            onEdgeClick={onEdgeClick}
             style={{
               backgroundColor: "#F7F9FB",
-              border: "2px solid #003366",
-              borderRadius: "10px",
+              border: "1px solid #003366",
+              borderRadius: "none",
             }} // Add border and border-radius
           >
-            <Controls style={{ left: 10, right: "auto" }} />{" "}
+            <Controls />{" "}
             {/* Position controls on the left */}
             <MiniMap
               nodeColor={(node) => {
@@ -440,8 +641,9 @@ export default function App() {
                 }
               }}
             />
-            <Background variant="lines" gap={16} size={1} color="#b5deb5" />{" "}
+            <Background variant="dots" gap={16} size={2} color="#b5deb5" />{" "}
             {/* Use lines background */}
+            <ColorPicker />
           </ReactFlow>
         </div>
       </div>
@@ -555,6 +757,7 @@ export default function App() {
   console.log("is running", isRunning);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
+      <style>{resizeStyles}</style>
       <div className="toolbar">
         <Tooltip text="New Page (Ctrl+N)">
           {" "}
@@ -572,99 +775,140 @@ export default function App() {
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
       </div>
 
-      <Tabs style={{ height: "calc(100% - 40px)" }}>
-        {" "}
-        {/* Tabs component to manage multiple pages */}
-        <TabList>
-          {" "}
-          {/* TabList component to display the list of tabs */}
-          {pages.map((pageId) => (
-            <Tab key={pageId}>
+      <div style={{ height: "calc(100% - 40px)", position: "relative" }}>
+        <div style={{ height: "100%", overflow: "auto" }}>
+          <Tabs style={{ height: "100%" }}>
+            {" "}
+            {/* Tabs component to manage multiple pages */}
+            <TabList>
               {" "}
-              {/* Tab component for each page */}
-              {pageId} {/* Display the page number */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent the click event from propagating to the tab
-                  handleRemovePage(pageId); // Call handleRemovePage when the button is clicked
-                }}
+              {/* TabList component to display the list of tabs */}
+              {pages.map((pageId) => (
+                <Tab key={pageId}>
+                  {" "}
+                  {/* Tab component for each page */}
+                  {pageId} {/* Display the page number */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent the click event from propagating to the tab
+                      handleRemovePage(pageId); // Call handleRemovePage when the button is clicked
+                    }}
+                    style={{
+                      marginLeft: "10px",
+                      color: "red",
+                      borderRadius: "50%",
+                      border: "none",
+                      width: "20px",
+                      height: "20px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FaTrash /> {/* Display a trash icon */}
+                  </button>
+                </Tab>
+              ))}
+              <button 
+                onClick={() => setIsEditorVisible(!isEditorVisible)}
                 style={{
-                  marginLeft: "10px",
-                  color: "red",
-                  borderRadius: "50%",
+                  marginLeft: "15px",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
                   border: "none",
-                  width: "20px",
-                  height: "20px",
+                  borderRadius: "4px",
+                  padding: "5px 10px",
                   cursor: "pointer",
                 }}
               >
-                <FaTrash /> {/* Display a trash icon */}
+                {isEditorVisible ? "Hide Code Editor" : "Show Code Editor"}
               </button>
-            </Tab>
-          ))}
-        </TabList>
-        {pages.map((page) => (
-          <TabPanel key={page.Id} style={{ height: "100%", width: "100%" }}>
-            {/* TabPanel component for each page */}
-            <Page pageId={page.Id} removePage={handleRemovePage} />{" "}
-            {/* Render the Page component */}
-          </TabPanel>
-        ))}
-        {/* <textarea
-          rows={30}
-          style={{ width: "100%" }}
-          value={defaultCode}
-          onChange={(e) => setDefaultCode(e.target.value)}
-        ></textarea> */}
-        {/* <Editor language="jsx" value={defaultCode} onUpdate={setDefaultCode} /> */}
-        <Editor
-          height="50vh"
-          defaultLanguage="cpp"
-          defaultValue={defaultCode}
-          theme="vs-dark"
-          onChange={(value) => setDefaultCode(value)}
-          beforeMount={beforeMount}
-          options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            suggestOnTriggerCharacters: true,
-            quickSuggestions: true,
-            snippetSuggestions: "inline",
-          }}
-        />
-        {/* <button onClick={() => RunCode()}>RUN</button> */}
-        <button
-          onClick={() => RunCode()}
-          style={{
-            backgroundColor: isRunning ? "#ff4444" : "#4CAF50",
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          {isRunning ? "STOP" : "RUN"}
-        </button>
-      </Tabs>
+            </TabList>
+            {pages.map((pageId) => (
+              <TabPanel key={pageId} style={{ height: "100%", width: "100%" }}>
+                {/* TabPanel component for each page */}
+                <Page pageId={pageId} removePage={handleRemovePage} />{" "}
+                {/* Render the Page component */}
+              </TabPanel>
+            ))}
+          </Tabs>
+        </div>
+        
+        {isEditorVisible && (
+          <div style={{ 
+            position: "absolute",
+            top: "0",
+            right: "0",
+            width: `${editorWidth}%`, 
+            height: "100%",
+            display: "flex", 
+            flexDirection: "column", 
+            padding: "10px",
+            background: "#2d2d2d",
+            boxShadow: "-5px 0 15px rgba(0, 0, 0, 0.2)",
+            zIndex: 100
+          }}>
+            <div 
+              style={{
+                position: "absolute",
+                left: "0",
+                top: "0",
+                width: "8px",
+                height: "100%",
+                cursor: "ew-resize",
+                zIndex: 101
+              }}
+              onMouseDown={handleResizeStart}
+              className={`resize-handle ${isResizing ? "resize-active" : ""}`}
+            />
+            <h3 style={{ color: "white", marginBottom: "10px" }}>Code Editor</h3>
+            <Editor
+              height="calc(100% - 80px)"
+              defaultLanguage="cpp"
+              defaultValue={defaultCode}
+              theme="vs-dark"
+              onChange={(value) => setDefaultCode(value)}
+              beforeMount={beforeMount}
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                suggestOnTriggerCharacters: true,
+                quickSuggestions: true,
+                snippetSuggestions: "inline",
+              }}
+            />
+            <button
+              onClick={() => RunCode()}
+              style={{
+                backgroundColor: isRunning ? "#ff4444" : "#4CAF50",
+                color: "white",
+                padding: "10px 20px",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                marginTop: "10px",
+              }}
+            >
+              {isRunning ? "STOP" : "RUN"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Modal for entering the new page name */}
-      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <Modal.Header>Enter Project Name</Modal.Header>
-        <Modal.Body>
+      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)} className="modal-overlay">
+        <Modal.Header className="modal-header">Enter Project Name</Modal.Header>
+        <Modal.Body className="modal-body">
           <TextInput
             value={newPageName}
             onChange={(e) => setNewPageName(e.target.value)}
             placeholder="Project Name"
+            className="text-input"
           />
         </Modal.Body>
-        <Modal.Footer>
-          {/* <Button onClick={handleNewPageSubmit}>Submit</Button> */}
-          <Button color="gray" onClick={handleNewPageSubmit}>
+        <Modal.Footer className="modal-footer">
+          <Button color="gray" onClick={handleNewPageSubmit} className="modal-button">
             Submit
           </Button>
-
-          <Button color="gray" onClick={() => setIsModalOpen(false)}>
+          <Button color="gray" onClick={() => setIsModalOpen(false)} className="modal-button">
             Cancel
           </Button>
         </Modal.Footer>
