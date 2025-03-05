@@ -1,0 +1,96 @@
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    /* Ensure it's on top of other content */
+}
+
+/* Modal Container */
+.modal-overlay>div {
+    background-color: white;
+    border-radius: 8px;
+    width: 400px;
+    /* Adjusted width */
+    max-height: 26vh;
+    /* Maximum height of 80% of the viewport height */
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    /* Add scroll if content exceeds height */
+}
+
+/* Modal Header */
+.modal-header {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+/* Modal Body */
+.modal-body {
+    margin-bottom: 16px;
+}
+
+/* Text Input */
+.text-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+}
+
+.text-input:focus {
+    border-color: #007bff;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+/* Buttons */
+.modal-button {
+    padding: 8px 16px;
+    border: 2px solid black;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Submit Button */
+.modal-button[color="gray"] {
+    background-color: #007bff;
+    color: white;
+}
+
+.modal-button[color="gray"]:hover {
+    background-color: #0056b3;
+}
+
+/* Cancel Button */
+.modal-button[color="gray"]:last-child {
+    background-color: #6c757d;
+    color: white;
+}
+
+.modal-button[color="gray"]:last-child:hover {
+    background-color: #5a6268;
+}
