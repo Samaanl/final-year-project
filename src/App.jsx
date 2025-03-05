@@ -694,7 +694,7 @@ export default function App() {
       // Main execution loop with optimized timing
       cpuLoopRef.current = setInterval(() => {
         // Run a smaller batch of instructions for more responsive updates
-        for (let i = 0; i < 1000; i++) {  // Reduced from 5,000 to 1,000 for more accurate timing
+        for (let i = 0; i < 50000; i++) {  // Reduced from 5,000 to 1,000 for more accurate timing
           avrInstruction(cpu);
           cpu.tick();
         }
@@ -718,7 +718,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setLedBlinkState(prevState => !prevState); // Toggle LED state
-    }, 50); // Change this interval as needed
+    }, 5); // Change this interval as needed
 
     return () => clearInterval(interval);
   }, []);
