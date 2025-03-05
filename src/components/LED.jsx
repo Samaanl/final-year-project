@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { createPortal } from 'react-dom';
 import Tooltip from "./Tooltip.jsx";
@@ -98,34 +98,21 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   
   // Critical fix: Use layout effect to ensure hardware pin state is checked before painting
   useLayoutEffect(() => {
-    if (isConnected && pin !== undefined) {
-      // Get state directly from hardware reference
-      const hardwarePinState = realPinStatesRef && realPinStatesRef.current ? 
-        realPinStatesRef.current[pin] || false : 
-        (pinState && pinState[pin]) || false;
+    if (!isConnected || pin === undefined) return;
+
+    const hardwarePinState = realPinStatesRef?.current?.[pin] || false;
+    
+    if (prevPinState.current !== hardwarePinState) {
+      prevPinState.current = hardwarePinState;
+      setLedState(hardwarePinState);
       
-      // Only log changes to avoid console spam
-      if (prevPinState.current !== hardwarePinState) {
-        console.log(`LED ${id} DIRECT HARDWARE CHECK: pin ${pin}:`, hardwarePinState);
-        prevPinState.current = hardwarePinState;
-      }
-      
-      // Always update LED state based on hardware state
-      if (ledState !== hardwarePinState) {
-        console.log(`LED ${id} updating LED state to match hardware: ${hardwarePinState}`);
-        setLedState(hardwarePinState);
-      }
-      
-      // Start or stop blinking immediately based on hardware state
-      if (hardwarePinState) {
-        if (!isBlinking) {
-          startBlinking();
-        }
-      } else if (isBlinking) {
+      if (hardwarePinState && !isBlinking) {
+        startBlinking();
+      } else if (!hardwarePinState && isBlinking) {
         stopBlinking();
       }
     }
-  });
+  }, [pin, isConnected, realPinStatesRef?.current]);
   
   // Force update based on hardware state changes
   useEffect(() => {
@@ -185,24 +172,19 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   }, [id, pin, isConnected]);
 
   // Function to start blinking
-  const startBlinking = () => {
-    console.log(`LED ${id} starting blink effect`);
+  const startBlinking = useCallback(() => {
     setIsBlinking(true);
-    
-    // Clear any existing interval
     if (blinkIntervalRef.current) {
       clearInterval(blinkIntervalRef.current);
     }
     
-    // Use the current LED color for blinking
     const activeColor = color;
     const dimColor = color === 'yellow' ? '#ffeb3b' : color;
     
-    // Create new blink interval with color-aware toggle
     blinkIntervalRef.current = setInterval(() => {
-      setColor(prevColor => prevColor === activeColor ? dimColor : activeColor);
+      setColor(prev => prev === activeColor ? dimColor : activeColor);
     }, 200);
-  };
+  }, [color]);
   
   // Function to stop blinking
   const stopBlinking = () => {
@@ -246,14 +228,14 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   const hardwarePinState = isConnected && pin !== undefined && realPinStatesRef && realPinStatesRef.current ? 
     realPinStatesRef.current[pin] || false : 
     (pinState && pinState[pin]) || false;
-  // Calculate style with shadow based on hardware pin state and current color
-  const style = {
+  // Memoize style calculations
+  const style = useMemo(() => ({
     transform: `translate(${pos.x}px, ${pos.y}px)`,
-    boxShadow: isConnected && hardwarePinState ? `0 0 80px 40px ${color}` : 'none',
+    boxShadow: isConnected && prevPinState.current ? `0 0 80px 40px ${color}` : 'none',
     transition: 'box-shadow 0.2s ease-in-out',
     position: 'relative',
     zIndex: 5
-  };
+  }), [pos.x, pos.y, isConnected, color, prevPinState.current]);
 
   // Additional style for the bulb to make it glow - use hardware pin state and current color
   const bulbStyle = {

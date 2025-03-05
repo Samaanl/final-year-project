@@ -670,7 +670,7 @@ export default function App() {
       };
       
       // Run initialization cycles
-      for (let i = 0; i < 100000; i++) {  // Reduced initialization cycles
+      for (let i = 0; i < 500000; i++) {  // Reduced initialization cycles
         avrInstruction(cpu);
         cpu.tick();
       }
@@ -718,7 +718,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setLedBlinkState(prevState => !prevState); // Toggle LED state
-    }, 1000); // Change this interval as needed
+    }, 50); // Change this interval as needed
 
     return () => clearInterval(interval);
   }, []);
