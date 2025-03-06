@@ -32,9 +32,7 @@ import {
   FaLightbulb,
   FaMicrochip,
   FaBreadSlice,
-  FaSave,
-  FaFolder,
-} from "react-icons/fa";
+} from "react-icons/fa"; // Import Font Awesome icons
 import { MdNoteAdd } from "react-icons/md";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -43,7 +41,6 @@ import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
-import "./components/ProjectBrowser.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -56,11 +53,8 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
   const [isDeleted, setIsDeleted] = useState(false); // State to hide the component
 
   const handleClick = (e) => {
-    // Only show delete button if clicking on the node container itself, not its children
-    if (e.target === e.currentTarget) {
-      e.stopPropagation();
-      setShowDelete(true);
-    }
+    e.stopPropagation();
+    setShowDelete(true);
   };
 
   const handleDelete = (e) => {
@@ -88,8 +82,9 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
   if (isDeleted) return null; // Return null if the component is deleted
 
   return (
-    <div onClick={handleClick} style={{ position: 'relative' }}>
+    <>
       {React.cloneElement(data.component, {
+        onClick: handleClick,
         style: { zIndex: 1 },
         onDelete,
       })}
@@ -116,35 +111,21 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
           <FaTrash />
         </button>
       )}
-    </div>
+    </>
   );
 };
 
-let ArduinoCode = `// Arduino code to blink two LEDs alternately
-// Connect one LED to pin 12 and another to pin 13
-
-int led1 = 12;  // First LED connected to digital pin 12
-int led2 = 13;  // Second LED connected to digital pin 13
-int delayTime = 50;  // Delay in milliseconds
-
-void setup() {
-  // Initialize both digital pins as outputs
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
+let ArduinoCode = `void setup() {
+  pinMode(13, OUTPUT);
 }
 
 void loop() {
-  // Turn on first LED, turn off second LED
-  digitalWrite(led1, HIGH);
-  digitalWrite(led2, LOW);
-  delay(delayTime);
-  
-  // Turn off first LED, turn on second LED
-  digitalWrite(led1, LOW);
-  digitalWrite(led2, HIGH);
-  delay(delayTime);
+  digitalWrite(13, HIGH);  
+  delay(1000);                      
+  digitalWrite(13, LOW);   
+  delay(1000);                      
 }
-`;
+  `;
 
 const beforeMount = (monaco) => {
   monaco.languages.register({ id: "arduino" });
@@ -195,43 +176,12 @@ export default function App() {
     11: false,
     12: false,
     13: false, 
-  }); 
-  // Add a version counter to force re-renders when pin states change
-  const [pinStateVersion, setPinStateVersion] = useState(0);
-  // Add a ref to hold real-time hardware pin states that can be accessed directly by components
-  const realPinStatesRef = useRef({
-    0: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false,
-    8: false, 9: false, 10: false, 11: false, 12: false, 13: false
-  });
-  const [pages, setPages] = useState([]); 
-  const [pageCounter, setPageCounter] = useState(1); 
-  const ledStateRef = useRef(false); 
+  }); // Add this state at the top
+  const [pages, setPages] = useState([]); // State to manage the list of pages
+  const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
+  const ledStateRef = useRef(false); // Ensure this is defined at the top
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
-  const [allProjNames, setallProjNames] = useState([]);
-  // Added a state to track the selected tab
-  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
-  // Add state to manage the modal visibility and input value
-  const [modalKey, setModalKey] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newPageName, setNewPageName] = useState("");
-  const [isEditorVisible, setIsEditorVisible] = useState(false); // Control editor visibility
-  const [editorWidth, setEditorWidth] = useState(40); // Editor width as percentage
-  const [isResizing, setIsResizing] = useState(false); // Track resize state
-
-
-  const [isProjectBrowserVisible, setIsProjectBrowserVisible] = useState(false);
-  const [projectBrowserWidth, setProjectBrowserWidth] = useState(20);
-  const [isProjectBrowserResizing, setIsProjectBrowserResizing] = useState(false);
-
-  const [projectViewMode, setProjectViewMode] = useState('grid');
-  const [projectSearchQuery, setProjectSearchQuery] = useState('');
-
-  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
-  const [fetchData, setfetchData] = useState([]);
-
-  // Add this state near your other state declarations
-  const [projectStates, setProjectStates] = useState({});
 
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
@@ -338,29 +288,19 @@ export default function App() {
       const addNode = (Component, width, height, initialData = {}, shouldBlink = false) => {
         const position = { x: 100, y: 100 };
         const isLEDComponent = Component.name === "LED";
-        
-        // Create component with all necessary props
-        const component = (
-          <Component
-            id={`component-${idCounter}`}
-            pos={position}
-            onDelete={handleDeleteNode}
-            pinState={pinState}
-            shouldBlink={shouldBlink}
-            isConnected={false}
-            pin={undefined}
-            realPinStatesRef={isLEDComponent ? realPinStatesRef : undefined}
-            style={{ pointerEvents: 'all' }}
-            {...initialData}
-          />
-        );
-        
         const newNode = {
           id: `${idCounter}`,
           type: "custom",
           position,
           data: {
-            component,
+            component: (
+              <Component
+                id={`component-${idCounter}`}
+                pos={position}
+                onDelete={handleDeleteNode}
+                {...(isLEDComponent && { pinState: pinState })}
+              />
+            ),
             width,
             height,
             ...initialData,
@@ -368,10 +308,8 @@ export default function App() {
           style: {
             width,
             height,
-            pointerEvents: 'all'
           },
         };
-        
         setNodes((nds) => [...nds, newNode]);
         setIdCounter((prev) => prev + 1);
         console.log("Node added:", newNode);
@@ -380,133 +318,103 @@ export default function App() {
       const [successNotificationShown, setSuccessNotificationShown] = useState({});
 
       useEffect(() => {
-        console.log("Pin state updated in MemoizedPage:", pinState);
-        console.log("Pin state version:", pinStateVersion); // Log version changes
-        
         setNodes((nds) =>
           nds.map((node) => {
             if (node.data.component.type.name === "LED") {
+              // Get the Arduino node and Resistor nodes
               const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
               const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
-              if (!resistors.length) return node;
+              if (!resistors.length || !arduinoNode) return node;
               
-              // Find the resistor that's connected to this LED
+              // Find resistor connected to LED's anode
               const connectedResistor = resistors.find(resistor => {
-                const ledToResistor = edges.find(
+                return edges.some(
                   edge => 
                     ((edge.source === node.id && edge.target === resistor.id &&
-                      edge.sourceHandle === "anode-source" && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
+                      edge.sourceHandle === "anode-source") ||
                     (edge.source === resistor.id && edge.target === node.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
                       edge.targetHandle === "anode-target"))
                 );
-                
-                if (!ledToResistor) return false;
-
-                // Check if resistor is connected to any digital pin
-                const resistorToArduino = edges.find(
-                  edge =>
-                    ((edge.source === resistor.id && edge.target === arduinoNode?.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
-                      edge.targetHandle.includes("handle-target-digital-")) ||
-                    (edge.source === arduinoNode?.id && edge.target === resistor.id &&
-                      edge.sourceHandle.includes("handle-source-digital-") && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")))
-                );
-
-                return Boolean(resistorToArduino);
               });
 
               // Check if cathode is connected to GND
-              const isCathodeConnectedToGND = Boolean(
-                edges.find(edge => 
+              const isCathodeConnectedToGND = edges.some(edge => 
                   (edge.source === node.id && 
-                    edge.target === arduinoNode?.id && 
-                    edge.sourceHandle === "cathode-source" && 
-                    (edge.targetHandle === "handle-target-power-GND1" || 
-                     edge.targetHandle === "handle-target-power-GND2")) ||
+                   edge.target === arduinoNode?.id && 
+                 edge.sourceHandle === "cathode-source" &&
+                   (edge.targetHandle === "handle-target-power-GND1" || 
+                    edge.targetHandle === "handle-target-power-GND2")) ||
                   (edge.source === arduinoNode?.id && 
-                    edge.target === node.id && 
-                    (edge.sourceHandle === "handle-source-power-GND1" || 
-                     edge.sourceHandle === "handle-source-power-GND2") && 
-                     edge.targetHandle === "cathode-target")
-                )
+                   edge.target === node.id && 
+                   (edge.sourceHandle === "handle-source-power-GND1" || 
+                  edge.sourceHandle === "handle-source-power-GND2") &&
+                 edge.targetHandle === "cathode-target")
               );
 
-              // Find which digital pin the LED is connected to (via resistor)
-              const pinConnections = edges.filter(edge => 
-                (edge.source === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.target === resistor.id && 
-                    edge.sourceHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                ) ||
-                (edge.target === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.source === resistor.id && 
-                    edge.targetHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                )
-              );
+              // Find which pin the resistor is connected to
+              let pinNumber = null;
+              if (connectedResistor) {
+                // Find edges between resistor and arduino
+                const resistorToArduinoEdge = edges.find(edge => 
+                  (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                  (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                );
 
-              const pinNumber = parseInt(
-                pinConnections.find(edge => edge.source === arduinoNode?.id)?.sourceHandle?.match(/\d+/)?.[0] || 
-                pinConnections.find(edge => edge.target === arduinoNode?.id)?.targetHandle?.match(/\d+/)?.[0]
-              );
+                if (resistorToArduinoEdge) {
+                  // Extract pin number from handle ID
+                  const handleId = resistorToArduinoEdge.source === arduinoNode.id 
+                    ? resistorToArduinoEdge.sourceHandle 
+                    : resistorToArduinoEdge.targetHandle;
+                  
+                  if (handleId && handleId.includes('digital-')) {
+                    pinNumber = parseInt(handleId.split('digital-')[1]);
+                    console.log(`LED ${node.id} connected to digital pin ${pinNumber}`);
+                  }
+                }
+              }
 
-              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
+              const isProperlyConnected = Boolean(connectedResistor) && 
+                                         isCathodeConnectedToGND && 
+                                         pinNumber !== null;
 
-              // Debug logs
-              console.log(`LED ${node.id} connection check:`, {
-                hasConnectedResistor: Boolean(connectedResistor),
-                isCathodeConnectedToGND,
-                pinNumber,
-                isProperlyConnected,
-                pinState: isProperlyConnected ? pinState[pinNumber] : undefined
+              console.log(`LED ${node.id} connection status:`, {
+                isConnected: isProperlyConnected,
+                pin: pinNumber,
+                pinState: pinNumber !== null ? pinState[pinNumber] : null
               });
 
-              // CRITICAL FIX: Force LED to acknowledge pin state on every update
-              const newPinState = {...pinState};
-              const actualPinState = pinNumber !== undefined ? pinState[pinNumber] : false;
-              
-              // Force recreation of component to ensure it gets the latest props
-              const clonedProps = {
-                ...node.data.component.props,
-                isConnected: isProperlyConnected,
-                shouldBlink: isProperlyConnected && actualPinState,
-                pinState: newPinState,
-                pin: pinNumber,
-                pinStateVersion: pinStateVersion, // Add version to force updates
-                forceUpdate: Date.now(), // Add timestamp to force re-render
-                key: `led-${node.id}-${Date.now()}-${pinStateVersion}`, // Include version in key
-                realPinStatesRef: realPinStatesRef, // Pass direct hardware pin states ref
-              };
-              
-              // Create new component with fresh props
-              const newComponent = React.createElement(
-                node.data.component.type,
-                clonedProps
-              );
-              
-              console.log(`RECREATING LED ${node.id} with pin ${pinNumber}, state:`, 
-                actualPinState ? "HIGH" : "LOW");
+              // Show success notification only once when circuit is complete
+              if (isProperlyConnected && !successNotificationShown[node.id]) {
+                toast.success(`Circuit complete! The LED is connected to pin ${pinNumber}`, {
+                  icon: "💡",
+                  toastId: `success-${node.id}`,
+                  autoClose: 3000
+                });
+                setSuccessNotificationShown(prev => ({ ...prev, [node.id]: true }));
+              }
 
-              // Create a new component instance with updated props
+              // Check if the current pin state is true and the LED should be on
+              const isPinHigh = isProperlyConnected && pinNumber !== null && pinState[pinNumber] === true;
+
               return {
                 ...node,
                 data: {
                   ...node.data,
-                  component: newComponent
+                  component: React.cloneElement(node.data.component, {
+                    isConnected: isProperlyConnected,
+                    shouldBlink: isProperlyConnected,
+                    pinState: pinState,
+                    pin: pinNumber,
+                    // Force the LED to see this was updated even if object reference is the same
+                    _updateCounter: Date.now()
+                  }),
                 },
               };
             }
             return node;
           })
         );
-      }, [edges, nodes, pinState, pinStateVersion]);
+      }, [edges, nodes, pinState, successNotificationShown]);
 
       const handleResistorValueChange = (id, value) => {
         setResistorValues((prev) => {
@@ -606,40 +514,11 @@ export default function App() {
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
-    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-    // setPageCounter(pageCounter + 1); // Increment the page counter
-    setModalKey((prev) => prev + 1);
-    setNewPageName("");
-    setIsModalOpen(true); // Show the modal
-  };
-
-  // Function to handle the submission of the new page name
-  const handleNewPageSubmit = () => {
-    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    // const newPageId = `${newPageName}`;
-    if (!newPageName.trim()) {
-      alert("Please enter a project name");
-      return;
-    }
-    setPages([newPageName, ...pages]); // Add the new page ID to the list of pages
+    const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
     setPageCounter(pageCounter + 1); // Increment the page counter
-    setIsModalOpen(false); // Hide the modal
-    // setNewPageName(""); // Clear the input value
-    setShowWelcomeScreen(false);
   };
 
-  const handleNewPageSubmitExsistingProject = (proj) => {
-    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    // const newPageId = `${newPageName}`;
-    setPages([proj, ...pages]); // Add the new page ID to the list of pages
-
-    setPageCounter((prev) => prev + 1); // Increment the page counter
-    setIsModalOpen(false); // Hide the modal
-    // setNewPageName(""); // Clear the input value
-    setShowWelcomeScreen(false);
-  };
-  console.log("all pages", pages);
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
     setPages(pages.filter((id) => id !== pageId)); // Remove the page ID from the list of pages
@@ -660,7 +539,6 @@ export default function App() {
     };
   }, [handleNewPageClick]);
 
-  console.log("project name is now ", newPageName);
   const RunCode = async () => {
     if (isRunning) {
       console.log("Stopping code execution");
@@ -670,13 +548,12 @@ export default function App() {
         cpuLoopRef.current = null;
       }
       
-      // Reset all pin states to LOW when stopping
+      // Reset all pin states when stopping
       const resetPinState = {};
       for (let pin = 0; pin <= 13; pin++) {
         resetPinState[pin] = false;
       }
       setPinState(resetPinState);
-      setPinStateVersion(v => v + 1);
       
       return;
     }
@@ -704,63 +581,68 @@ export default function App() {
       const portB = new AVRIOPort(cpu, portBConfig);
       const timer = new AVRTimer(cpu, timer0Config);
 
-      // CRITICAL FIX: Direct pin state update function
-      const directUpdatePinStates = () => {
-        // Create a fresh state object
-        const newPinStates = {};
-        
-        // Read all pin states directly from hardware
+      // Function to check if pin states have changed
+      const getPinStates = () => {
+        const states = {};
+        // Check Port D pins (0-7)
         for (let pin = 0; pin <= 7; pin++) {
-          newPinStates[pin] = portD.pinState(pin) === PinState.High;
+          states[pin] = portD.pinState(pin) === PinState.High;
         }
         
+        // Check Port B pins (8-13)
         for (let pin = 0; pin <= 5; pin++) {
-          newPinStates[pin + 8] = portB.pinState(pin) === PinState.High;
+          states[pin + 8] = portB.pinState(pin) === PinState.High;
         }
-        
-        // CRITICAL: Update the real-time ref with hardware pin states FIRST
-        realPinStatesRef.current = {...newPinStates};
-        
-        // CRITICAL: Force React state update with NO COMPARISON
-        setPinState(() => ({...newPinStates}));
-        setPinStateVersion(v => v + 1);
+        return states;
       };
       
-      // Run initialization cycles
-      for (let i = 0; i < 500000; i++) {  // Reduced initialization cycles
-        avrInstruction(cpu);
-        cpu.tick();
-      }
-      
-      // Initialize pin states
-      directUpdatePinStates();
+      // Update pin states
+      const updatePinStates = () => {
+        const newStates = getPinStates();
+        
+        // Log each pin state for debugging
+        Object.entries(newStates).forEach(([pin, state]) => {
+          console.log(`Pin ${pin} hardware state: ${state}`);
+        });
+        
+        // Use functional update to ensure we're working with the latest state
+        setPinState(prevState => {
+          // Check if any pin state has changed
+          const hasChanges = Object.entries(newStates).some(
+            ([pin, state]) => prevState[pin] !== state
+          );
+          
+          if (hasChanges) {
+            console.log('Pin states changed, updating React state:', newStates);
+            return { ...newStates };
+          }
+          return prevState;
+        });
+      };
 
-      // Add direct port listeners
+      // Add listeners to detect pin changes immediately
       portD.addListener(() => {
-        console.log("**PORT D CHANGED - DIRECT UPDATE**");
-        directUpdatePinStates();
+        console.log('Port D change detected');
+        updatePinStates();
       });
       
       portB.addListener(() => {
-        console.log("**PORT B CHANGED - DIRECT UPDATE**");
-        directUpdatePinStates();
+        console.log('Port B change detected');
+        updatePinStates();
       });
 
-      console.log("Starting CPU execution loop");
-      
-      // Main execution loop with optimized timing
+      // Set up a CPU execution loop
       cpuLoopRef.current = setInterval(() => {
-        // Run a smaller batch of instructions for more responsive updates
-        for (let i = 0; i < 50000; i++) {  // Reduced from 5,000 to 1,000 for more accurate timing
+        // Execute a batch of instructions
+        for (let i = 0; i < 50000; i++) {
           avrInstruction(cpu);
           cpu.tick();
         }
         
-        // Always force pin state updates
-        directUpdatePinStates();
-        
-      }, 1); // Reduced from 15ms to 1ms for more precise timing
-        
+        // Update pin states after the execution batch
+        updatePinStates();
+      }, 10);
+      
     } catch (error) {
       console.error("Error running code:", error);
       setIsRunning(false);
@@ -775,7 +657,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setLedBlinkState(prevState => !prevState); // Toggle LED state
-    }, 5); // Change this interval as needed
+    }, 1000); // Change this interval as needed
 
     return () => clearInterval(interval);
   }, []);
@@ -799,14 +681,12 @@ export default function App() {
           {" "}
           {/* Add Tooltip component */}
           <button
-            onClick={() => {
-              handleNewPageClick();
-              setShowWelcomeScreen(false);
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
-              focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
+            onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
+            className="toolbar-button"
           >
-            <MdNoteAdd className="mr-1" /> New Project
+            <MdNoteAdd style={{ marginRight: "5px" }} />{" "}
+            {/* Display a plus icon with margin */}
+            New Page
           </button>
         </Tooltip>
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
@@ -888,5 +768,5 @@ export default function App() {
         </button>
       </Tabs>
     </div>
-    );
-  }
+  );
+}

@@ -2,15 +2,26 @@
   {
     "Sourcefile": null,
     "Include": "",
+<<<<<<< HEAD
+    "Includepath": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino"
+=======
     "Includepath": "C:\\Users\\rudre\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino"
+>>>>>>> main
   },
   {
     "Sourcefile": null,
     "Include": "",
+<<<<<<< HEAD
+    "Includepath": "C:\\Users\\ACER\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard"
+  },
+  {
+    "Sourcefile": "E:\\Ty_Project\\project\\integrated_backend\\final-year-project\\src\\temp\\build\\sketch\\sketch.ino.cpp",
+=======
     "Includepath": "C:\\Users\\rudre\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\variants\\standard"
   },
   {
     "Sourcefile": "C:\\Users\\rudre\\OneDrive\\Desktop\\baam\\added-deleted\\src\\temp\\build\\sketch\\sketch.ino.cpp",
+>>>>>>> main
     "Include": "",
     "Includepath": null
   }
