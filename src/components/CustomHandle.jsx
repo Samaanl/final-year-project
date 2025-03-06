@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Handle, useNodeConnections } from '@xyflow/react';
+import { Handle, useHandleConnections } from '@xyflow/react';
 
 const CustomHandle = ({
   type,
@@ -14,12 +14,12 @@ const CustomHandle = ({
   const basePinId = id.split('handle-')[1].split('-').slice(1).join('-');
   
   // Get connections for both source and target handles of this pin
-  const sourceConnections = useNodeConnections({
+  const sourceConnections = useHandleConnections({
     type: 'source',
     id: `handle-source-${basePinId}`
   });
   
-  const targetConnections = useNodeConnections({
+  const targetConnections = useHandleConnections({
     type: 'target',
     id: `handle-target-${basePinId}`
   });
