@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
 import Editor from "@monaco-editor/react";
-// import Model from "./model.jsx";
 import {
   avrInstruction,
   AVRIOPort,
@@ -36,7 +35,8 @@ import {
   FaMicrochip,
   FaBreadSlice,
   FaSave,
-} from "react-icons/fa"; // Import Font Awesome icons
+  FaFolder,
+} from "react-icons/fa";
 import { MdNoteAdd } from "react-icons/md";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -44,7 +44,6 @@ import "@xyflow/react/dist/style.css";
 import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
-import "./Modal.css";
 import "./components/ComponentsSection.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
 
@@ -173,12 +172,18 @@ export default function App() {
   // Added a state to track the selected tab
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   // Add state to manage the modal visibility and input value
+  const [modalKey, setModalKey] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPageName, setNewPageName] = useState("");
-
   const [isEditorVisible, setIsEditorVisible] = useState(false); // Control editor visibility
   const [editorWidth, setEditorWidth] = useState(40); // Editor width as percentage
   const [isResizing, setIsResizing] = useState(false); // Track resize state
+
+
+  const [isProjectBrowserVisible, setIsProjectBrowserVisible] = useState(false);
+  const [projectBrowserWidth, setProjectBrowserWidth] = useState(20);
+  const [isProjectBrowserResizing, setIsProjectBrowserResizing] = useState(false);
+
 
   const [fetchData, setfetchData] = useState([]);
 
@@ -218,25 +223,58 @@ export default function App() {
     setIsResizing(false);
   };
 
+  const handleProjectBrowserResizeStart = (e) => {
+    setIsProjectBrowserResizing(true);
+    e.preventDefault();
+  };
+  
+  const handleProjectBrowserResizeMove = (e) => {
+    if (!isProjectBrowserResizing) return;
+  
+    // Calculate width based on mouse position
+    const mouseX = e.clientX;
+    const windowWidth = window.innerWidth;
+    
+    // Convert to percentage of window width
+    const newWidth = (mouseX / windowWidth) * 100;
+    
+    // Constrain width between 15% and 40%
+    if (newWidth >= 15 && newWidth <= 40) {
+      setProjectBrowserWidth(newWidth);
+    }
+  };
+  
+  const handleProjectBrowserResizeEnd = () => {
+    setIsProjectBrowserResizing(false);
+  };
+
   // Add event listeners for resize
   useEffect(() => {
     if (isResizing) {
-      window.addEventListener('mousemove', handleResizeMove);
-      window.addEventListener('mouseup', handleResizeEnd);
+      window.addEventListener("mousemove", handleResizeMove);
+      window.addEventListener("mouseup", handleResizeEnd);
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleResizeMove);
-      window.removeEventListener('mouseup', handleResizeEnd);
+      window.removeEventListener("mousemove", handleResizeMove);
+      window.removeEventListener("mouseup", handleResizeEnd);
     };
   }, [isResizing]);
 
-  // Add this function inside the App component
-  /**
-   * The function `handleDeleteProject` is used to delete a project by sending a DELETE request to a
-   * specified endpoint and updating local state accordingly.
-   * @returns The `handleDeleteProject` function returns `undefined`.
-   */
+
+  useEffect(() => {
+    if (isProjectBrowserResizing) {
+      window.addEventListener('mousemove', handleProjectBrowserResizeMove);
+      window.addEventListener('mouseup', handleProjectBrowserResizeEnd);
+    }
+  
+    return () => {
+      window.removeEventListener('mousemove', handleProjectBrowserResizeMove);
+      window.removeEventListener('mouseup', handleProjectBrowserResizeEnd);
+    };
+  }, [isProjectBrowserResizing]);
+
+
   const handleDeleteProject = async (projectName) => {
     if (!projectName || projectName.trim() === "") {
       console.error("No project name provided for deletion");
@@ -296,7 +334,10 @@ export default function App() {
     const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
     const [selectedEdge, setSelectedEdge] = useState(null);
-    const [colorPickerPosition, setColorPickerPosition] = useState({ x: 0, y: 0 });
+    const [colorPickerPosition, setColorPickerPosition] = useState({
+      x: 0,
+      y: 0,
+    });
 
     const getActiveNodesCount = () => nodes.length;
 
@@ -429,19 +470,18 @@ export default function App() {
       }
     }, [newPageName]);
 
-
     const defaultEdgeOptions = {
       style: {
         strokeWidth: 3,
-        stroke: '#666',
+        stroke: "#666",
       },
-      type: 'smoothstep',
+      type: "smoothstep",
       animated: false,
     };
 
     const connectionLineStyle = {
       strokeWidth: 3,
-      stroke: '#666',
+      stroke: "#666",
     };
 
     // Add this new edge click handler
@@ -449,15 +489,17 @@ export default function App() {
       event.stopPropagation();
 
       // Remove 'selected' class from all edges
-      document.querySelectorAll('.react-flow__edge').forEach(el => {
-        el.classList.remove('selected');
+      document.querySelectorAll(".react-flow__edge").forEach((el) => {
+        el.classList.remove("selected");
       });
 
       // Get edge element and calculate center position
-      const edgeElement = document.querySelector(`[data-testid="rf__edge-${edge.id}"]`);
+      const edgeElement = document.querySelector(
+        `[data-testid="rf__edge-${edge.id}"]`,
+      );
       if (edgeElement) {
         // Add 'selected' class to the clicked edge
-        edgeElement.classList.add('selected');
+        edgeElement.classList.add("selected");
 
         const rect = edgeElement.getBoundingClientRect();
         const x = rect.left + rect.width / 2;
@@ -472,42 +514,48 @@ export default function App() {
     useEffect(() => {
       return () => {
         // Clean up 'selected' class from all edges when component unmounts
-        document.querySelectorAll('.react-flow__edge').forEach(el => {
-          el.classList.remove('selected');
+        document.querySelectorAll(".react-flow__edge").forEach((el) => {
+          el.classList.remove("selected");
         });
       };
     }, []);
 
     // Update color change handler to the simpler version
-    const handleColorChange = useCallback((color) => {
-      setEdges((eds) =>
-        eds.map((ed) => {
-          if (ed.id === selectedEdge.id) {
-            return {
-              ...ed,
-              style: { ...ed.style, stroke: color },
-            };
-          }
-          return ed;
-        })
-      );
-    }, [selectedEdge, setEdges]);
+    const handleColorChange = useCallback(
+      (color) => {
+        setEdges((eds) =>
+          eds.map((ed) => {
+            if (ed.id === selectedEdge.id) {
+              return {
+                ...ed,
+                style: { ...ed.style, stroke: color },
+              };
+            }
+            return ed;
+          }),
+        );
+      },
+      [selectedEdge, setEdges],
+    );
 
     // Add click outside handler
     useEffect(() => {
       const handleClickOutside = (event) => {
-        if (!event.target.closest('.color-picker-container') &&
-          !event.target.closest('.react-flow__edge')) {
+        if (
+          !event.target.closest(".color-picker-container") &&
+          !event.target.closest(".react-flow__edge")
+        ) {
           setSelectedEdge(null);
           // Remove selected class from all edges
-          document.querySelectorAll('.react-flow__edge').forEach(el => {
-            el.classList.remove('selected');
+          document.querySelectorAll(".react-flow__edge").forEach((el) => {
+            el.classList.remove("selected");
           });
         }
       };
 
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     // Update ColorPicker component to remove the color preset buttons
@@ -518,31 +566,30 @@ export default function App() {
         <div
           className="color-picker-container"
           style={{
-            position: 'fixed',
+            position: "fixed",
             left: `${colorPickerPosition.x}px`,
             top: `${colorPickerPosition.y}px`,
-            transform: 'translate(-50%, -50%)',
-            background: 'white',
-            padding: '8px',
-            borderRadius: '4px',
-            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+            transform: "translate(-50%, -50%)",
+            background: "white",
+            padding: "8px",
+            borderRadius: "4px",
+            boxShadow: "0 0 5px rgba(0,0,0,0.3)",
             zIndex: 1000,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px'
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
           }}
         >
-
           <input
             type="color"
-            value={selectedEdge?.style?.stroke || '#666'}
+            value={selectedEdge?.style?.stroke || "#666"}
             onChange={(e) => handleColorChange(e.target.value)}
             style={{
-              width: '24px',
-              height: '24px',
+              width: "24px",
+              height: "24px",
               padding: 0,
-              border: 'none',
-              cursor: 'pointer'
+              border: "none",
+              cursor: "pointer",
             }}
           />
         </div>
@@ -552,12 +599,14 @@ export default function App() {
     // console.log("fetchData", fetchData);
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
-        <div className={`components-section ${isPanelCollapsed ? 'collapsed' : ''}`}>
+        <div
+          className={`components-section ${isPanelCollapsed ? "collapsed" : ""}`}
+        >
           <button
             className="collapse-button"
             onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
           >
-            {isPanelCollapsed ? '→' : '←'}
+            {isPanelCollapsed ? "→" : "←"}
           </button>
           <h3 className="components-header">Components</h3>
           <button
@@ -568,7 +617,9 @@ export default function App() {
             {!isPanelCollapsed && <span>Add LED</span>}
           </button>
           <button
-            onClick={() => addNode(Resistor, 100, 50, { x: 100, y: 100 }, { resistance: "" })}
+            onClick={() =>
+              addNode(Resistor, 100, 50, { x: 100, y: 100 }, { resistance: "" })
+            }
             className="component-button"
           >
             <FaMicrochip style={{ marginRight: "5px" }} />
@@ -589,54 +640,51 @@ export default function App() {
             {!isPanelCollapsed && <span>Add Arduino Uno</span>}
           </button>
           <button
-            onClick={
-              () => {
-                let project = [];
-                let nodeName = [];
-                let x = [];
-                let y = [];
-                for (let i in nodes) {
-                  alert(
-                    `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`,
-                  );
+            onClick={() => {
+              let project = [];
+              let nodeName = [];
+              let x = [];
+              let y = [];
+              for (let i in nodes) {
+                alert(
+                  `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`,
+                );
 
-                  nodeName.push(nodes[i].data.component.type.name);
-                  x.push(nodes[i].position.x);
-                  y.push(nodes[i].position.y);
-                }
-                project.push(newPageName);
-                console.log("project name is", newPageName);
-                console.log("x", x);
-                console.log("y", y);
-                fetch("http://localhost:3512/insert", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    proj: project,
-                    nodeName: nodeName,
-                    x: x,
-                    y: y,
-                  }),
-                }).then((response) => {
-                  if (response.ok) {
-                    alert("Data saved successfully");
-                  } else {
-                    alert("Failed to save data");
-                  }
-                });
+                nodeName.push(nodes[i].data.component.type.name);
+                x.push(nodes[i].position.x);
+                y.push(nodes[i].position.y);
               }
-            }
-            className="component-button"
-            style={{ backgroundColor: "#4CAF50" }}
+              project.push(newPageName);
+              console.log("project name is", newPageName);
+              console.log("x", x);
+              console.log("y", y);
+              fetch("http://localhost:3512/insert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  proj: project,
+                  nodeName: nodeName,
+                  x: x,
+                  y: y,
+                }),
+              }).then((response) => {
+                if (response.ok) {
+                  alert("Data saved successfully");
+                } else {
+                  alert("Failed to save data");
+                }
+              });
+            }}
+            className="component-button bg-emerald-600 hover:bg-emerald-700 transition-colors"
+            style={{ backgroundColor: "rgb(5, 150, 105)" }}
           >
-
             <FaSave style={{ marginRight: "5px" }} />
             {!isPanelCollapsed && <span>SAVE</span>}
           </button>
         </div>
         <div style={{ flex: 1 }}>
           <p>Active Nodes: {getActiveNodesCount()}</p>
-          <p>display name: { }</p>
+          <p>display name: {}</p>
 
           <ReactFlow
             nodes={nodes}
@@ -661,8 +709,8 @@ export default function App() {
               setSelectedNode(null);
               setSelectedEdge(null);
               // Remove selected class from all edges
-              document.querySelectorAll('.react-flow__edge').forEach(el => {
-                el.classList.remove('selected');
+              document.querySelectorAll(".react-flow__edge").forEach((el) => {
+                el.classList.remove("selected");
               });
             }}
             proOptions={{
@@ -692,7 +740,7 @@ export default function App() {
                 }
               }}
             />
-            <Background variant="dots" gap={16} size={2} color="black" />
+            <Background variant="lines" gap={16} size={1} color="#b5deb5" />
             {/* Add ColorPicker component here */}
             <ColorPicker />
           </ReactFlow>
@@ -706,6 +754,7 @@ export default function App() {
     // const newPageId = `page-${pageCounter}`; // Generate a new page ID
     // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
     // setPageCounter(pageCounter + 1); // Increment the page counter
+    setModalKey((prev) => prev + 1);
     setNewPageName("");
     setIsModalOpen(true); // Show the modal
   };
@@ -826,174 +875,184 @@ export default function App() {
     <div style={{ width: "100vw", height: "100vh" }}>
       <div className="toolbar">
         <Tooltip text="New Page (Ctrl+N)">
-          <button
-            onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
-            className="toolbar-button"
-          >
-            <MdNoteAdd style={{ marginRight: "5px" }} />{" "}
-            {/* Display a plus icon with margin */}
-            New Page
-          </button>
-        </Tooltip>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewPageClick}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+              focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
+            >
+              <MdNoteAdd className="mr-1" /> New Page
+            </button>
 
-        {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
+            <button
+              onClick={() => setIsProjectBrowserVisible(!isProjectBrowserVisible)}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+                focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
+            >
+              <FaFolder className="mr-1" /> {isProjectBrowserVisible ? "Hide Projects" : "Projects"}
+            </button>
+
+            <button
+              onClick={() => setIsEditorVisible(!isEditorVisible)}
+              className="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
+        focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors flex items-center"
+            >
+              {isEditorVisible ? "Hide Editor" : "Show Editor"}
+            </button>
+          </div>
+        </Tooltip>
       </div>
 
-      <div style={{ height: "calc(100% - 40px)", position: "relative", display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          height: "calc(100% - 40px)",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <div style={{ height: "100%", overflow: "auto", position: "relative" }}>
-          <div
-            className="project-list flex gap-6"
-            style={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1,
-              height: "60px",
-              marginTop: 0,
-              border: "1px solid #ccc",
-              padding: "10px",
-              borderRadius: "8px 8px 0 0",
-              overflowX: "auto",
-              overflowY: "hidden",
-              whiteSpace: "nowrap",
-              backgroundColor: "#f8f9fa",
-              boxShadow: "0 -4px 10px rgba(0,0,0,0.1)"
-            }}
-          >
-            {allProjNames
-              .filter((proj) => proj && proj.trim() !== "")
-              .map((proj) => (
-                <div
-                  key={proj}
-                  className="project-item flex"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    backgroundColor: "white",
-                    border: "1px solid #e0e0e0",
-                    padding: "8px",
-                    borderRadius: "6px",
-                    marginRight: "10px",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-                  }}
-                >
-                  <button
-                    onClick={() => {
-                      setNewPageName(proj);
-                      handleNewPageSubmitExsistingProject(proj);
-                    }}
-                    key={proj}
-                    style={{
-                      padding: "4px 12px",
-                      color: "#333",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      cursor: "pointer",
-                      border: "none",
-                      background: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      transition: "all 0.2s ease"
-                    }}
-                  >
-                    {proj}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProject(proj)}
-                    className="delete-button"
-                    style={{
-                      color: "#dc3545",
-                      border: "none",
-                      background: "none",
-                      cursor: "pointer",
-                      padding: "4px",
-                      display: "flex",
-                      alignItems: "center",
-                      opacity: 0.6,
-                      transition: "opacity 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = "1";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = "0.6";
-                    }}
-                  >
-                    <FaTrash size={14} />
-                  </button>
-                </div>
-              ))}
-          </div>
 
           <Tabs
             style={{ height: "100%" }}
+            selectedTabClassName="bg-gray-600 text-white border-none"
             onSelect={(index) => {
               setSelectedTabIndex(index);
               console.log(`Tab clicked: ${pages[index]}`);
               setNewPageName(pages[index]);
             }}
           >
-            <TabList>
-              {pages.map((pageId) => (
-                <Tab key={pageId}>
+            <TabList className="flex border-b border-gray-700">
+              {pages.map((pageId, index) => (
+                <Tab
+                  key={pageId}
+                  className={`px-4 py-2 border-t border-r border-l border-gray-700 
+                      bg-gray-700 
+                      focus:outline-none hover:bg-gray-600 
+                      transition-colors rounded-t-md mb-[-1px]
+                    ${
+                      index === selectedTabIndex
+                        ? "bg-gray-700 text-white border-b"
+                        : "text-gray-300 border-b border-gray-500"
+                    }`}
+                >
                   {pageId}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRemovePage(pageId);
                     }}
-                    style={{
-                      marginLeft: "10px",
-                      color: "red",
-                      borderRadius: "50%",
-                      border: "none",
-                      width: "20px",
-                      height: "20px",
-                      cursor: "pointer",
-                    }}
+                    className="ml-2 text-red-500 hover:text-red-700 focus:outline-none"
                   >
-                    <FaTrash />
+                    <FaTrash size={12} />
                   </button>
                 </Tab>
               ))}
-              <button
-                onClick={() => setIsEditorVisible(!isEditorVisible)}
-                style={{
-                  marginLeft: "15px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
-              >
-                {isEditorVisible ? "Hide Code Editor" : "Show Code Editor"}
-              </button>
+              <div className="flex items-center ml-auto"></div>
             </TabList>
             {pages.map((page) => (
-              <TabPanel key={page.Id} style={{ height: "100%", width: "100%", paddingBottom: "70px" }}>
+              <TabPanel
+                key={page.Id}
+                style={{ height: "100%", width: "100%", paddingBottom: "70px" }}
+              >
                 <Page pageId={page.Id} removePage={handleRemovePage} />
               </TabPanel>
             ))}
           </Tabs>
         </div>
 
-        {isEditorVisible && (
+        {isProjectBrowserVisible && (
           <div style={{
             position: "absolute",
             top: "0",
-            right: "0",
-            width: `${editorWidth}%`,
+            left: "0", // Coming from left side instead of right
+            width: `${projectBrowserWidth}%`,
             height: "100%",
             display: "flex",
             flexDirection: "column",
             padding: "10px",
-            background: "#2d2d2d",
-            boxShadow: "-5px 0 15px rgba(0, 0, 0, 0.2)",
-            zIndex: 100
+            background: "#374151",
+            boxShadow: "5px 0 15px rgba(0, 0, 0, 0.1)",
+            zIndex: 100,
+            border: "1px solid #4B5563",
           }}>
+            <div
+              style={{
+                position: "absolute",
+                right: "0", // Resize handle on right side
+                top: "0",
+                width: "8px",
+                height: "100%",
+                cursor: "ew-resize",
+                zIndex: 101
+              }}
+              onMouseDown={handleProjectBrowserResizeStart}
+              className={`resize-handle ${isProjectBrowserResizing ? "resize-active" : ""}`}
+            />
+            <div className="flex items-center justify-between mb-4">
+              <h3 style={{ color: "white" }}>Projects</h3>
+              <button 
+                onClick={() => setIsProjectBrowserVisible(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto flex-1">
+              {allProjNames
+                .filter(proj => proj && proj.trim() !== "")
+                .map(proj => (
+                  <div
+                    key={proj}
+                    className="flex items-center justify-between p-2 mb-1 rounded hover:bg-gray-600 cursor-pointer"
+                    onClick={() => {
+                      setNewPageName(proj);
+                      handleNewPageSubmitExsistingProject(proj);
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <FaMicrochip className="text-indigo-500 mr-2" />
+                      <span className="text-gray-200">{proj}</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(proj);
+                      }}
+                      className="text-red-500 hover:text-red-700 focus:outline-none"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+
+
+        {isEditorVisible && (
+          <div
+            style={{
+              position: "absolute",
+              top: "0",
+              right: "0",
+              width: `${editorWidth}%`,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              padding: "10px",
+              background: "#374151",
+              boxShadow: "-5px 0 15px rgba(0, 0, 0, 0.1)",
+              zIndex: 100,
+              border: "1px solid #4B5563",
+            }}
+            className="dark:bg-gray-800 dark:border-gray-700"
+          >
             <div
               style={{
                 position: "absolute",
@@ -1002,12 +1061,14 @@ export default function App() {
                 width: "8px",
                 height: "100%",
                 cursor: "ew-resize",
-                zIndex: 101
+                zIndex: 101,
               }}
               onMouseDown={handleResizeStart}
               className={`resize-handle ${isResizing ? "resize-active" : ""}`}
             />
-            <h3 style={{ color: "white", marginBottom: "10px" }}>Code Editor</h3>
+            <h3 style={{ color: "white", marginBottom: "10px" }}>
+              Code Editor
+            </h3>
             <Editor
               height="calc(100% - 80px)"
               defaultLanguage="cpp"
@@ -1025,22 +1086,14 @@ export default function App() {
             />
             <button
               onClick={() => RunCode()}
-              style={{
-                backgroundColor: isRunning ? "#ff4444" : "#4CAF50",
-                color: "white",
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                marginTop: "10px",
-              }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+        focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors mt-2"
             >
               {isRunning ? "STOP" : "RUN"}
             </button>
           </div>
         )}
       </div>
-
 
       {/* {allProjNames.map((proj) => (
         <button
@@ -1055,26 +1108,66 @@ export default function App() {
           {proj}
         </button>
       ))} */}
-      {/* Modal for entering the new page name */}
-      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)} className="modal-overlay">
-        <Modal.Header className="modal-header">Enter Project Name</Modal.Header>
-        <Modal.Body className="modal-body">
-          <TextInput
-            value={newPageName}
-            onChange={(e) => setNewPageName(e.target.value)}
-            placeholder="Project Name"
-            className="text-input"
-          />
-        </Modal.Body>
-        <Modal.Footer className="modal-footer">
-          <Button color="gray" onClick={handleNewPageSubmit} className="modal-button">
-            Submit
-          </Button>
-          <Button color="gray" onClick={() => setIsModalOpen(false)} className="modal-button">
-            Cancel
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {isModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div
+            className="absolute inset-0 bg-black opacity-60"
+            onClick={() => setIsModalOpen(false)}
+          ></div>
+          <div
+            className="bg-gray-800 rounded-md shadow-lg z-10 overflow-hidden border border-gray-700"
+            style={{ width: "380px", maxWidth: "95%" }}
+            key={`modal-${modalKey}`}
+          >
+            <div className="border-b border-gray-700 px-5 py-4">
+              <h3 className="text-lg font-semibold text-gray-200">
+                New Project
+              </h3>
+            </div>
+
+            <div className="p-5">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Project Name
+              </label>
+              <input
+                key={`input-${modalKey}`}
+                type="text"
+                className="w-full px-3 py-2 border border-gray-600 rounded-md 
+              bg-gray-700 text-gray-100
+              focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                value={newPageName}
+                onChange={(e) => setNewPageName(e.target.value)}
+                placeholder="Enter project name"
+                autoFocus
+              />
+            </div>
+
+            <div className="bg-gray-900 px-5 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 bg-gray-700 border border-gray-600
+              text-gray-200 rounded-md hover:bg-gray-600 
+              focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!newPageName.trim()) {
+                    alert("Please enter a project name");
+                    return;
+                  }
+                  handleNewPageSubmit();
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+              >
+                Create Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
