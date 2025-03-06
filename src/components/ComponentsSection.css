@@ -1,49 +1,75 @@
 .components-section {
-    width: 200px;
-    background-color: #f4f4f4;
-    padding: 10px;
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow for better visual separation */
-    border-radius: 10px; /* Add rounded corners */
-  }
-  
-  .components-header {
-    margin: 0;
-    padding: 10px 0;
-    font-size: 18px;
-    color: #003366;
-    border-bottom: 1px solid #ddd;
-    width: 100%;
-    text-align: center;
-    background-color: #e6e6e6; /* Add background color to header */
-    border-top-left-radius: 10px; /* Rounded corners for header */
-    border-top-right-radius: 10px; /* Rounded corners for header */
-  }
-  
-  .component-button {
-    margin: 10px 0;
-    padding: 10px 15px;
-    font-size: 14px;
-    cursor: pointer;
-    background-color: #00509e;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    width: 100%;
-    justify-content: center;
-    transition: background-color 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Add shadow to buttons */
-  }
-  
-  .component-button:hover {
-    background-color: #003366;
-  }
-  
-  .component-button svg {
-    margin-right: 5px; /* Add margin to icons */
-  }
+  width: 250px;
+  height: 100%;
+  background-color: #374151;
+  border-right: 1px solid #4B5563;
+  padding: 15px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+  transition: width 0.3s ease;
+  position: relative;
+  border-radius: 0 8px 8px 0;
+}
+
+.components-section.collapsed {
+  width: 50px;
+  padding: 15px 5px;
+}
+
+.components-header {
+  margin-top: 0;
+  color: #f3f4f6;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.components-section.collapsed .components-header {
+  display: none;
+}
+
+.component-button {
+  background-color: #4f46e5;
+  width: 100%;
+  color: white;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.component-button:hover {
+  background-color: #4338ca;
+}
+
+
+.component-button.bg-emerald-600 {
+  background-color: rgb(5, 150, 105);
+}
+
+.collapse-button {
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f3f4f6;
+  z-index: 10;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.collapse-button:hover {
+  background-color: #374151;
+}

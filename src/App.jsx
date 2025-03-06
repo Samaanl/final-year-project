@@ -32,7 +32,9 @@ import {
   FaLightbulb,
   FaMicrochip,
   FaBreadSlice,
-} from "react-icons/fa"; // Import Font Awesome icons
+  FaSave,
+  FaFolder,
+} from "react-icons/fa";
 import { MdNoteAdd } from "react-icons/md";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
@@ -41,6 +43,7 @@ import Tooltip from "./components/Tooltip.jsx";
 import "./components/Tooltip.css";
 import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
+import "./components/ProjectBrowser.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -205,6 +208,30 @@ export default function App() {
   const ledStateRef = useRef(false); 
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
+  const [allProjNames, setallProjNames] = useState([]);
+  // Added a state to track the selected tab
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  // Add state to manage the modal visibility and input value
+  const [modalKey, setModalKey] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newPageName, setNewPageName] = useState("");
+  const [isEditorVisible, setIsEditorVisible] = useState(false); // Control editor visibility
+  const [editorWidth, setEditorWidth] = useState(40); // Editor width as percentage
+  const [isResizing, setIsResizing] = useState(false); // Track resize state
+
+
+  const [isProjectBrowserVisible, setIsProjectBrowserVisible] = useState(false);
+  const [projectBrowserWidth, setProjectBrowserWidth] = useState(20);
+  const [isProjectBrowserResizing, setIsProjectBrowserResizing] = useState(false);
+
+  const [projectViewMode, setProjectViewMode] = useState('grid');
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
+  const [fetchData, setfetchData] = useState([]);
+
+  // Add this state near your other state declarations
+  const [projectStates, setProjectStates] = useState({});
 
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
@@ -579,11 +606,40 @@ export default function App() {
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
-    const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-    setPageCounter(pageCounter + 1); // Increment the page counter
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
+    // setPageCounter(pageCounter + 1); // Increment the page counter
+    setModalKey((prev) => prev + 1);
+    setNewPageName("");
+    setIsModalOpen(true); // Show the modal
   };
 
+  // Function to handle the submission of the new page name
+  const handleNewPageSubmit = () => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // const newPageId = `${newPageName}`;
+    if (!newPageName.trim()) {
+      alert("Please enter a project name");
+      return;
+    }
+    setPages([newPageName, ...pages]); // Add the new page ID to the list of pages
+    setPageCounter(pageCounter + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+    setShowWelcomeScreen(false);
+  };
+
+  const handleNewPageSubmitExsistingProject = (proj) => {
+    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
+    // const newPageId = `${newPageName}`;
+    setPages([proj, ...pages]); // Add the new page ID to the list of pages
+
+    setPageCounter((prev) => prev + 1); // Increment the page counter
+    setIsModalOpen(false); // Hide the modal
+    // setNewPageName(""); // Clear the input value
+    setShowWelcomeScreen(false);
+  };
+  console.log("all pages", pages);
   // Function to handle the removal of a page
   const handleRemovePage = (pageId) => {
     setPages(pages.filter((id) => id !== pageId)); // Remove the page ID from the list of pages
@@ -604,6 +660,7 @@ export default function App() {
     };
   }, [handleNewPageClick]);
 
+  console.log("project name is now ", newPageName);
   const RunCode = async () => {
     if (isRunning) {
       console.log("Stopping code execution");
@@ -742,12 +799,14 @@ export default function App() {
           {" "}
           {/* Add Tooltip component */}
           <button
-            onClick={handleNewPageClick} // Call handleNewPageClick when the button is clicked
-            className="toolbar-button"
+            onClick={() => {
+              handleNewPageClick();
+              setShowWelcomeScreen(false);
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
           >
-            <MdNoteAdd style={{ marginRight: "5px" }} />{" "}
-            {/* Display a plus icon with margin */}
-            New Page
+            <MdNoteAdd className="mr-1" /> New Project
           </button>
         </Tooltip>
         {/* <Button onClick={() => setIsDrawerOpen(true)}>Show drawer</Button> */}
@@ -829,5 +888,5 @@ export default function App() {
         </button>
       </Tabs>
     </div>
-  );
-}
+    );
+  }

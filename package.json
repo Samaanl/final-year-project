@@ -43,6 +43,7 @@
   "dependencies": {
     "@dnd-kit/core": "^6.2.0",
     "@dnd-kit/modifiers": "^8.0.0",
+    "@headlessui/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",
     "@reactflow/core": "^11.11.4",
     "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -57,6 +58,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "express": "^4.21.2",
     "flowbite-react": "^0.10.2",
+    "html2canvas": "^1.4.1",
     "intel-hex": "^0.2.0",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
