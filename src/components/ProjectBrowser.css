@@ -1,0 +1,118 @@
+.grid-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Project item styling */
+.project-thumbnail {
+  width: 100%;
+  height: 80px;
+  background-color: #2c3440;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.project-grid-item {
+  display: flex;
+  flex-direction: column;
+  background-color: #374151;
+  border: 1px solid #4B5563;
+  border-radius: 6px;
+  padding: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.project-grid-item:hover {
+  background-color: #4B5563;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.project-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #374151;
+  border: 1px solid #4B5563;
+  border-radius: 6px;
+  padding: 10px;
+  transition: all 0.2s ease;
+}
+
+.project-list-item:hover {
+  background-color: #4B5563;
+}
+
+.project-info {
+  margin-top: 6px;
+}
+
+.project-name {
+  font-weight: 600;
+  color: #f3f4f6;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-date {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.view-toggle-button {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-toggle-button:hover {
+  background-color: #4338ca;
+}
+
+.project-filter {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #2c3440;
+  border: 1px solid #4B5563;
+  border-radius: 4px;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.delete-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background-color: rgba(35, 35, 35, 0.7);
+  color: #ef4444;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-grid-item:hover .delete-button {
+  opacity: 1;
+}
