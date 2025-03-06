@@ -3,7 +3,7 @@
   "compiler.optimization_flags": "",
   "customBuildProperties": "build.warn_data_percentage=75",
   "fqbn": "arduino:avr:uno",
-  "hardwareFolders": "C:\\Users\\DEXsh\\AppData\\Local\\Arduino15\\packages",
-  "otherLibrariesFolders": "C:\\Users\\DEXsh\\OneDrive\\Documents\\Arduino\\libraries",
-  "sketchLocation": "C:\\Users\\DEXsh\\OneDrive\\Desktop\\working db proj\\final-year-project\\src\\temp\\sketch"
+  "hardwareFolders": "C:\\Users\\rudre\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\rudre\\OneDrive\\Documents\\Arduino\\libraries",
+  "sketchLocation": "C:\\Users\\rudre\\OneDrive\\Desktop\\baam\\added-deleted\\src\\temp\\sketch"
 }

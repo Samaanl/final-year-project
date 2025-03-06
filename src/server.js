@@ -44,6 +44,23 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing
 
 //new added ends
 
+//Delete feature in project name
+app.delete("/deleteProject/:projectName", (req, res) => {
+  const projectName = req.params.projectName;
+  
+  const deleteQuery = `DELETE FROM users WHERE proj = ?`;
+  
+  db.run(deleteQuery, [projectName], (err) => {
+    if (err) {
+      console.error("Error deleting project:", err.message);
+      res.status(500).json({ error: "Failed to delete project" });
+      return;
+    }
+    res.json({ message: "Project deleted successfully" });
+  });
+});
+
+
 // Middleware to set CORS headers
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");

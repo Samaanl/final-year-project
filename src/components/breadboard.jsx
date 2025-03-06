@@ -38,7 +38,7 @@ export function Breadboard(props) {
           type="source"
           position={Position.Left}
           id={`handle-source-${section}-${railType}-rail-hole-${index}`}
-          className="w-2 h-2 bg-black-500 rounded-full absolute"
+          className="w-4 h-4 bg-black-500 rounded-full absolute opacity-0"
           style={{
             top: '50%',
             left: '100%',
