@@ -180,13 +180,13 @@ export default function App() {
   const [editorWidth, setEditorWidth] = useState(40); // Editor width as percentage
   const [isResizing, setIsResizing] = useState(false); // Track resize state
 
-
   const [isProjectBrowserVisible, setIsProjectBrowserVisible] = useState(false);
   const [projectBrowserWidth, setProjectBrowserWidth] = useState(20);
-  const [isProjectBrowserResizing, setIsProjectBrowserResizing] = useState(false);
+  const [isProjectBrowserResizing, setIsProjectBrowserResizing] =
+    useState(false);
 
-  const [projectViewMode, setProjectViewMode] = useState('grid');
-  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const [projectViewMode, setProjectViewMode] = useState("grid");
+  const [projectSearchQuery, setProjectSearchQuery] = useState("");
 
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(true);
   const [fetchData, setfetchData] = useState([]);
@@ -231,26 +231,32 @@ export default function App() {
     setIsProjectBrowserResizing(true);
     e.preventDefault();
   };
-  
+
   const handleProjectBrowserResizeMove = (e) => {
     if (!isProjectBrowserResizing) return;
-  
+
     // Calculate width based on mouse position
     const mouseX = e.clientX;
     const windowWidth = window.innerWidth;
-    
+
     // Convert to percentage of window width
     const newWidth = (mouseX / windowWidth) * 100;
-    
+
     // Constrain width between 15% and 40%
     if (newWidth >= 15 && newWidth <= 40) {
       setProjectBrowserWidth(newWidth);
     }
   };
-  
+
   const handleProjectBrowserResizeEnd = () => {
     setIsProjectBrowserResizing(false);
   };
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedState, setLastSavedState] = useState({
+    nodes: [],
+    edges: [],
+  });
 
   // Add event listeners for resize
   useEffect(() => {
@@ -265,19 +271,17 @@ export default function App() {
     };
   }, [isResizing]);
 
-
   useEffect(() => {
     if (isProjectBrowserResizing) {
-      window.addEventListener('mousemove', handleProjectBrowserResizeMove);
-      window.addEventListener('mouseup', handleProjectBrowserResizeEnd);
+      window.addEventListener("mousemove", handleProjectBrowserResizeMove);
+      window.addEventListener("mouseup", handleProjectBrowserResizeEnd);
     }
-  
+
     return () => {
-      window.removeEventListener('mousemove', handleProjectBrowserResizeMove);
-      window.removeEventListener('mouseup', handleProjectBrowserResizeEnd);
+      window.removeEventListener("mousemove", handleProjectBrowserResizeMove);
+      window.removeEventListener("mouseup", handleProjectBrowserResizeEnd);
     };
   }, [isProjectBrowserResizing]);
-
 
   const handleDeleteProject = async (projectName) => {
     if (!projectName || projectName.trim() === "") {
@@ -288,20 +292,22 @@ export default function App() {
     if (window.confirm(`Are you sure you want to delete ${projectName}?`)) {
       try {
         const response = await fetch(
-          `http://localhost:3512/deleteProject/${encodeURIComponent(projectName)}`,
+          `http://localhost:3512/deleteProject/${encodeURIComponent(
+            projectName
+          )}`,
           {
             method: "DELETE",
-          },
+          }
         );
 
         if (response.ok) {
           // Remove from local state
           setallProjNames((prevProjects) =>
-            prevProjects.filter((proj) => proj !== projectName),
+            prevProjects.filter((proj) => proj !== projectName)
           );
           // Remove from pages if it's open
           setPages((prevPages) =>
-            prevPages.filter((page) => page !== projectName),
+            prevPages.filter((page) => page !== projectName)
           );
         } else {
           console.error("Failed to delete project");
@@ -363,13 +369,13 @@ export default function App() {
 
     const onConnect = useCallback(
       (params) => setEdges((els) => addEdge(params, els)),
-      [],
+      []
     );
 
     const handleDeleteNode = (id) => {
       setNodes((nds) => nds.filter((node) => node.id !== id));
       setEdges((eds) =>
-        eds.filter((edge) => edge.source !== id && edge.target !== id),
+        eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     };
 
@@ -430,7 +436,7 @@ export default function App() {
               100,
               50,
               { x: data[i].x, y: data[i].y },
-              { resistance: "" },
+              { resistance: "" }
             );
             break;
           case "Breadboard":
@@ -499,7 +505,7 @@ export default function App() {
 
       // Get edge element and calculate center position
       const edgeElement = document.querySelector(
-        `[data-testid="rf__edge-${edge.id}"]`,
+        `[data-testid="rf__edge-${edge.id}"]`
       );
       if (edgeElement) {
         // Add 'selected' class to the clicked edge
@@ -536,11 +542,24 @@ export default function App() {
               };
             }
             return ed;
-          }),
+          })
         );
       },
-      [selectedEdge, setEdges],
+      [selectedEdge, setEdges]
     );
+
+    useEffect(() => {
+      // Skip the initial render
+      if (nodes.length === 0 && edges.length === 0) return;
+
+      // Check if current state is different from last saved state
+      const currentState = JSON.stringify({ nodes, edges });
+      const savedState = JSON.stringify(lastSavedState);
+
+      if (currentState !== savedState) {
+        setHasUnsavedChanges(true);
+      }
+    }, [nodes, edges]);
 
     // Add click outside handler
     useEffect(() => {
@@ -604,7 +623,9 @@ export default function App() {
     return (
       <div style={{ display: "flex", height: "100%", width: "100%" }}>
         <div
-          className={`components-section ${isPanelCollapsed ? "collapsed" : ""}`}
+          className={`components-section ${
+            isPanelCollapsed ? "collapsed" : ""
+          }`}
         >
           <button
             className="collapse-button"
@@ -651,7 +672,7 @@ export default function App() {
               let y = [];
               for (let i in nodes) {
                 alert(
-                  `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`,
+                  `$node name: ${nodes[i].data.component.type.name} and its position x is ${nodes[i].position.x} and its position y is ${nodes[i].position.y}`
                 );
 
                 nodeName.push(nodes[i].data.component.type.name);
@@ -674,6 +695,8 @@ export default function App() {
               }).then((response) => {
                 if (response.ok) {
                   alert("Data saved successfully");
+                  setLastSavedState({ nodes: [...nodes], edges: [...edges] });
+                  setHasUnsavedChanges(false);
                 } else {
                   alert("Failed to save data");
                 }
@@ -687,9 +710,6 @@ export default function App() {
           </button>
         </div>
         <div style={{ flex: 1 }}>
-          <p>Active Nodes: {getActiveNodesCount()}</p>
-          <p>display name: {}</p>
-
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -740,14 +760,21 @@ export default function App() {
                   case "output":
                     return "green";
                   default:
-                    return "#eee";
+                    return "#4f46e5";
                 }
               }}
+              style={{
+                border: "2px solid #4B5563",
+                backgroundColor: "#1f2937",
+                borderRadius: "4px",
+              }}
+              position="bottom-right"
             />
             <Background variant="lines" gap={16} size={1} color="#b5deb5" />
-            {/* Add ColorPicker component here */}
             <ColorPicker />
           </ReactFlow>
+          <p>Active Nodes: {getActiveNodesCount()}</p>
+          <p>display name: {}</p>
         </div>
       </div>
     );
@@ -755,9 +782,34 @@ export default function App() {
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
-    // const newPageId = `page-${pageCounter}`; // Generate a new page ID
-    // setPages([...pages, newPageId]); // Add the new page ID to the list of pages
-    // setPageCounter(pageCounter + 1); // Increment the page counter
+    // Check if there are unsaved changes
+    if (hasUnsavedChanges && pages.length > 0) {
+      const currentPageName = pages[selectedTabIndex];
+
+      if (
+        window.confirm(
+          `You have unsaved changes in "${currentPageName}". Save before creating a new project?`
+        )
+      ) {
+        // User chose to save - trigger save action
+        const saveButton = document.querySelector(
+          ".component-button.bg-emerald-600"
+        );
+        if (saveButton) {
+          saveButton.click();
+
+          // After saving, proceed with creating a new page
+          setTimeout(() => {
+            setModalKey((prev) => prev + 1);
+            setNewPageName("");
+            setIsModalOpen(true); // Show the modal
+          }, 100); // Small delay to allow save operation to complete
+        }
+      }
+      return;
+    }
+
+    // If no unsaved changes or user confirmed, proceed with creating a new page
     setModalKey((prev) => prev + 1);
     setNewPageName("");
     setIsModalOpen(true); // Show the modal
@@ -878,520 +930,680 @@ export default function App() {
   console.log("is running", isRunning);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-    {showWelcomeScreen ? (
-      <div className="welcome-screen" style={{
-        height: "100%",
-        backgroundColor: "#1f2937",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px"
-      }}>
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Offline-Cad Project Manager</h1>
-          <button
-            onClick={() => {
-              handleNewPageClick();
-              setShowWelcomeScreen(false);
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+      {showWelcomeScreen ? (
+        <div
+          className="welcome-screen"
+          style={{
+            height: "100%",
+            backgroundColor: "#1f2937",
+            display: "flex",
+            flexDirection: "column",
+            padding: "20px",
+          }}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-white">
+              Offline-Cad Project Manager
+            </h1>
+            <button
+              onClick={() => {
+                handleNewPageClick();
+                setShowWelcomeScreen(false);
+              }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
               focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
-          >
-            <MdNoteAdd className="mr-1" /> New Project
-          </button>
-        </div>
-        
-        {/* Search */}
-        <div className="mb-6 relative w-1/3">
-          <input
-            type="text"
-            placeholder="Search projects..."
-            className="project-filter w-full"
-            value={projectSearchQuery}
-            onChange={(e) => setProjectSearchQuery(e.target.value)}
-          />
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="absolute top-3 right-3 text-gray-400" viewBox="0 0 16 16">
-            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-          </svg>
-        </div>
-        
-        {/* View Toggle */}
-        <div className="flex mb-6 space-x-2">
-          <button 
-            onClick={() => setProjectViewMode('grid')}
-            className={`p-2 rounded ${projectViewMode === 'grid' ? 'bg-indigo-600' : 'bg-gray-700'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="text-white" viewBox="0 0 16 16">
-              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z"/>
-            </svg>
-          </button>
-          <button 
-            onClick={() => setProjectViewMode('list')}
-            className={`p-2 rounded ${projectViewMode === 'list' ? 'bg-indigo-600' : 'bg-gray-700'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="text-white" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-          </button>
-        </div>
-        
-        {/* Projects List */}
-        <div className="flex-1 overflow-y-auto">
-          {projectViewMode === 'grid' ? (
-            <div className="grid-view">
-              {allProjNames
-                .filter(proj => proj && proj.trim() !== "" && 
-                  (!projectSearchQuery || proj.toLowerCase().includes(projectSearchQuery.toLowerCase())))
-                .map(proj => (
-                  <div 
-                    key={proj} 
-                    className="project-grid-item group cursor-pointer"
-                    onClick={() => {
-                      setNewPageName(proj);
-                      handleNewPageSubmitExsistingProject(proj);
-                      setShowWelcomeScreen(false);
-                    }}
-                  >
-                    <div className="project-thumbnail">
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                        <FaMicrochip size={32} className="text-indigo-500" />
-                      </div>
-                    </div>
-                    <div className="project-info">
-                      <div className="project-name">{proj}</div>
-                      <div className="project-date">{new Date().toLocaleDateString()}</div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProject(proj);
-                      }}
-                      className="delete-button"
-                    >
-                      <FaTrash size={12} />
-                    </button>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="list-view">
-              {allProjNames
-                .filter(proj => proj && proj.trim() !== "" && 
-                  (!projectSearchQuery || proj.toLowerCase().includes(projectSearchQuery.toLowerCase())))
-                .map(proj => (
-                  <div 
-                    key={proj} 
-                    className="project-list-item cursor-pointer"
-                    onClick={() => {
-                      setNewPageName(proj);
-                      handleNewPageSubmitExsistingProject(proj);
-                      setShowWelcomeScreen(false);
-                    }}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-800 rounded flex items-center justify-center mr-3">
-                        <FaMicrochip className="text-indigo-500" />
-                      </div>
-                      <div>
-                        <div className="project-name">{proj}</div>
-                        <div className="project-date">{new Date().toLocaleDateString()}</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProject(proj);
-                      }}
-                      className="text-red-500 hover:text-red-700 focus:outline-none"
-                    >
-                      <FaTrash size={12} />
-                    </button>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </div>
-    ) : (
-
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <div className="toolbar">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleNewPageClick}
-              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
-              focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
             >
-              <MdNoteAdd className="mr-1" /> New Page
-            </button>
-
-            <button
-              onClick={() => setIsProjectBrowserVisible(!isProjectBrowserVisible)}
-              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
-                focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
-            >
-              <FaFolder className="mr-1" /> {isProjectBrowserVisible ? "Hide Projects" : "Projects"}
-            </button>
-
-            <button
-              onClick={() => setIsEditorVisible(!isEditorVisible)}
-              className="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
-        focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors flex items-center"
-            >
-              {isEditorVisible ? "Hide Editor" : "Show Editor"}
+              <MdNoteAdd className="mr-1" /> New Project
             </button>
           </div>
-      </div>
 
-      <div
-        style={{
-          height: "calc(100% - 40px)",
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ height: "100%", overflow: "auto", position: "relative" }}>
+          {/* Search */}
+          <div className="mb-6 relative w-1/3">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              className="project-filter w-full"
+              value={projectSearchQuery}
+              onChange={(e) => setProjectSearchQuery(e.target.value)}
+            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              className="absolute top-3 right-3 text-gray-400"
+              viewBox="0 0 16 16"
+            >
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+            </svg>
+          </div>
 
-          <Tabs
-            style={{ height: "100%" }}
-            selectedTabClassName="bg-gray-600 text-white border-none"
-            onSelect={(index) => {
-              setSelectedTabIndex(index);
-              console.log(`Tab clicked: ${pages[index]}`);
-              setNewPageName(pages[index]);
+          {/* View Toggle */}
+          <div className="flex mb-6 space-x-2">
+            <button
+              onClick={() => setProjectViewMode("grid")}
+              className={`p-2 rounded ${
+                projectViewMode === "grid" ? "bg-indigo-600" : "bg-gray-700"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                className="text-white"
+                viewBox="0 0 16 16"
+              >
+                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setProjectViewMode("list")}
+              className={`p-2 rounded ${
+                projectViewMode === "list" ? "bg-indigo-600" : "bg-gray-700"
+              }`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                className="text-white"
+                viewBox="0 0 16 16"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* Projects List */}
+          <div className="flex-1 overflow-y-auto">
+            {projectViewMode === "grid" ? (
+              <div className="grid-view">
+                {allProjNames
+                  .filter(
+                    (proj) =>
+                      proj &&
+                      proj.trim() !== "" &&
+                      (!projectSearchQuery ||
+                        proj
+                          .toLowerCase()
+                          .includes(projectSearchQuery.toLowerCase()))
+                  )
+                  .map((proj) => (
+                    <div
+                      key={proj}
+                      className="project-grid-item group cursor-pointer"
+                      onClick={() => {
+                        setNewPageName(proj);
+                        handleNewPageSubmitExsistingProject(proj);
+                        setShowWelcomeScreen(false);
+                      }}
+                    >
+                      <div className="project-thumbnail">
+                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                          <FaMicrochip size={32} className="text-indigo-500" />
+                        </div>
+                      </div>
+                      <div className="project-info">
+                        <div className="project-name">{proj}</div>
+                        <div className="project-date">
+                          {new Date().toLocaleDateString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(proj);
+                        }}
+                        className="delete-button"
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="list-view">
+                {allProjNames
+                  .filter(
+                    (proj) =>
+                      proj &&
+                      proj.trim() !== "" &&
+                      (!projectSearchQuery ||
+                        proj
+                          .toLowerCase()
+                          .includes(projectSearchQuery.toLowerCase()))
+                  )
+                  .map((proj) => (
+                    <div
+                      key={proj}
+                      className="project-list-item cursor-pointer"
+                      onClick={() => {
+                        setNewPageName(proj);
+                        handleNewPageSubmitExsistingProject(proj);
+                        setShowWelcomeScreen(false);
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gray-800 rounded flex items-center justify-center mr-3">
+                          <FaMicrochip className="text-indigo-500" />
+                        </div>
+                        <div>
+                          <div className="project-name">{proj}</div>
+                          <div className="project-date">
+                            {new Date().toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(proj);
+                        }}
+                        className="text-red-500 hover:text-red-700 focus:outline-none"
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ width: "100vw", height: "100vh" }}>
+          <div className="toolbar">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleNewPageClick}
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+              focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
+              >
+                <MdNoteAdd className="mr-1" /> New Page
+              </button>
+
+              <button
+                onClick={() =>
+                  setIsProjectBrowserVisible(!isProjectBrowserVisible)
+                }
+                className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+                focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors flex items-center"
+              >
+                <FaFolder className="mr-1" />{" "}
+                {isProjectBrowserVisible ? "Hide Projects" : "Projects"}
+              </button>
+
+              <button
+                onClick={() => setIsEditorVisible(!isEditorVisible)}
+                className="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
+        focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors flex items-center"
+              >
+                {isEditorVisible ? "Hide Editor" : "Show Editor"}
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              height: "calc(100% - 40px)",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <TabList className="flex border-b border-gray-700">
-              {pages.map((pageId, index) => (
-                <Tab
-                  key={pageId}
-                  className={`px-4 py-2 border-t border-r border-l border-gray-700 
+            <div
+              style={{ height: "100%", overflow: "auto", position: "relative" }}
+            >
+              <Tabs
+                style={{ height: "100%" }}
+                selectedTabClassName="bg-gray-600 text-white border-none"
+                selectedIndex={selectedTabIndex}
+                onSelect={(index) => {
+                  // This will only be called if our click handler above doesn't prevent the default
+                  if (!hasUnsavedChanges || index === selectedTabIndex) {
+                    setSelectedTabIndex(index);
+                    console.log(`Tab clicked: ${pages[index]}`);
+                    setNewPageName(pages[index]);
+                  }
+                }}
+              >
+                <TabList className="flex border-b border-gray-700">
+                  {pages.map((pageId, index) => (
+                    <Tab
+                      key={pageId}
+                      className={`px-4 py-2 border-t border-r border-l border-gray-700 
                       bg-gray-700 
                       focus:outline-none hover:bg-gray-600 
                       transition-colors rounded-t-md mb-[-1px]
                     ${
                       index === selectedTabIndex
-                        ? "bg-gray-700 text-white border-b"
-                        : "text-gray-300 border-b border-gray-500"
+                        ? "bg-gray-600 text-white border-b-0 border-t-indigo-500 border-t-2"
+                        : "bg-gray-700 text-gray-300 border-b border-gray-500 opacity-80"
                     }`}
-                >
-                  {pageId}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemovePage(pageId);
+                      onClick={(e) => {
+                        // If there are unsaved changes, show confirmation dialog
+                        if (hasUnsavedChanges && index !== selectedTabIndex) {
+                          e.preventDefault(); // Prevent the default tab switch behavior
+
+                          const currentPageName = pages[selectedTabIndex];
+                          const targetPageName = pageId;
+
+                          if (
+                            window.confirm(
+                              `You have unsaved changes in "${currentPageName}". Save before switching to "${targetPageName}"?`
+                            )
+                          ) {
+                            // User chose to save - trigger save action
+                            const saveButton = document.querySelector(
+                              ".component-button.bg-emerald-600"
+                            );
+                            if (saveButton) {
+                              saveButton.click();
+
+                              // After saving, manually switch to the desired tab
+                              setTimeout(() => {
+                                setSelectedTabIndex(index);
+                                setNewPageName(pageId);
+                              }, 100); // Small delay to allow save operation to complete
+                            }
+                          }
+                          return;
+                        }
+                        // If no unsaved changes, tab switch will proceed normally
+                      }}
+                    >
+                      {pageId}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (hasUnsavedChanges && index === selectedTabIndex) {
+                            if (
+                              !window.confirm(
+                                `This page "${pageId}" has unsaved changes. Are you sure you want to remove it?`
+                              )
+                            ) {
+                              return;
+                            }
+                          }
+                          handleRemovePage(pageId);
+                        }}
+                        className="ml-2 text-red-500 hover:text-red-700 focus:outline-none"
+                      >
+                        <FaTrash size={12} />
+                      </button>
+                    </Tab>
+                  ))}
+                  <div className="flex items-center ml-auto"></div>
+                </TabList>
+                {pages.map((page) => (
+                  <TabPanel
+                    key={page.Id}
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      paddingBottom: "70px",
                     }}
-                    className="ml-2 text-red-500 hover:text-red-700 focus:outline-none"
                   >
-                    <FaTrash size={12} />
-                  </button>
-                </Tab>
-              ))}
-              <div className="flex items-center ml-auto"></div>
-            </TabList>
-            {pages.map((page) => (
-              <TabPanel
-                key={page.Id}
-                style={{ height: "100%", width: "100%", paddingBottom: "70px" }}
-              >
-                <Page pageId={page.Id} removePage={handleRemovePage} />
-              </TabPanel>
-            ))}
-          </Tabs>
-        </div>
-
-        {isProjectBrowserVisible && (
-  <div style={{
-    position: "absolute",
-    top: "0",
-    left: "0",
-    width: `${projectBrowserWidth}%`,
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    padding: "10px",
-    background: "#374151",
-    boxShadow: "5px 0 15px rgba(0, 0, 0, 0.1)",
-    zIndex: 100,
-    border: "1px solid #4B5563",
-  }}>
-    <div
-      style={{
-        position: "absolute",
-        right: "0",
-        top: "0",
-        width: "8px",
-        height: "100%",
-        cursor: "ew-resize",
-        zIndex: 101
-      }}
-      onMouseDown={handleProjectBrowserResizeStart}
-      className={`resize-handle ${isProjectBrowserResizing ? "resize-active" : ""}`}
-    />
-    
-    {/* Header */}
-    <div className="flex items-center justify-between mb-4">
-      <h3 style={{ color: "white" }} className="text-xl font-semibold">Projects</h3>
-      <div className="flex space-x-2">
-        <button 
-          onClick={() => setProjectViewMode('grid')}
-          className={`p-2 rounded ${projectViewMode === 'grid' ? 'bg-indigo-600' : 'bg-gray-700'}`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="text-white" viewBox="0 0 16 16">
-            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z"/>
-          </svg>
-        </button>
-        <button 
-          onClick={() => setProjectViewMode('list')}
-          className={`p-2 rounded ${projectViewMode === 'list' ? 'bg-indigo-600' : 'bg-gray-700'}`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="text-white" viewBox="0 0 16 16">
-            <path fillRule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-          </svg>
-        </button>
-        <button 
-          onClick={() => setIsProjectBrowserVisible(false)}
-          className="p-2 rounded bg-gray-700 hover:bg-gray-600"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
-    
-    {/* Search */}
-    <div className="mb-4 relative">
-      <input
-        type="text"
-        placeholder="Search projects..."
-        className="project-filter"
-        value={projectSearchQuery}
-        onChange={(e) => setProjectSearchQuery(e.target.value)}
-      />
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="absolute top-3 right-3 text-gray-400" viewBox="0 0 16 16">
-        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-      </svg>
-    </div>
-    
-    {/* Project List */}
-    <div className="overflow-y-auto flex-1">
-      {projectViewMode === 'grid' ? (
-        <div className="grid-view">
-          {allProjNames
-            .filter(proj => proj && proj.trim() !== "" && 
-              (!projectSearchQuery || proj.toLowerCase().includes(projectSearchQuery.toLowerCase())))
-            .map(proj => (
-              <div 
-                key={proj} 
-                className="project-grid-item group"
-                onClick={() => {
-                  setNewPageName(proj);
-                  handleNewPageSubmitExsistingProject(proj);
-                }}
-              >
-                <div className="project-thumbnail">
-                  <div 
-                    className="w-full h-full flex items-center justify-center bg-gray-800"
-                  >
-                    <FaMicrochip size={32} className="text-indigo-500" />
-                  </div>
-                </div>
-                <div className="project-info">
-                  <div className="project-name">{proj}</div>
-                  <div className="project-date">{new Date().toLocaleDateString()}</div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteProject(proj);
-                  }}
-                  className="delete-button"
-                >
-                  <FaTrash size={12} />
-                </button>
-              </div>
-            ))}
-        </div>
-      ) : (
-        <div className="list-view">
-          {allProjNames
-            .filter(proj => proj && proj.trim() !== "" && 
-              (!projectSearchQuery || proj.toLowerCase().includes(projectSearchQuery.toLowerCase())))
-            .map(proj => (
-              <div 
-                key={proj} 
-                className="project-list-item"
-                onClick={() => {
-                  setNewPageName(proj);
-                  handleNewPageSubmitExsistingProject(proj);
-                }}
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-gray-800 rounded flex items-center justify-center mr-3">
-                    <FaMicrochip className="text-indigo-500" />
-                  </div>
-                  <div>
-                    <div className="project-name">{proj}</div>
-                    <div className="project-date">{new Date().toLocaleDateString()}</div>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteProject(proj);
-                  }}
-                  className="text-red-500 hover:text-red-700 focus:outline-none"
-                >
-                  <FaTrash size={12} />
-                </button>
-              </div>
-            ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-
-
-        {isEditorVisible && (
-          <div
-            style={{
-              position: "absolute",
-              top: "0",
-              right: "0",
-              width: `${editorWidth}%`,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              padding: "10px",
-              background: "#374151",
-              boxShadow: "-5px 0 15px rgba(0, 0, 0, 0.1)",
-              zIndex: 100,
-              border: "1px solid #4B5563",
-            }}
-            className="dark:bg-gray-800 dark:border-gray-700"
-          >
-            <div
-              style={{
-                position: "absolute",
-                left: "0",
-                top: "0",
-                width: "8px",
-                height: "100%",
-                cursor: "ew-resize",
-                zIndex: 101,
-              }}
-              onMouseDown={handleResizeStart}
-              className={`resize-handle ${isResizing ? "resize-active" : ""}`}
-            />
-            <h3 style={{ color: "white", marginBottom: "10px" }}>
-              Code Editor
-            </h3>
-            <Editor
-              height="calc(100% - 80px)"
-              defaultLanguage="cpp"
-              defaultValue={defaultCode}
-              theme="vs-dark"
-              onChange={(value) => setDefaultCode(value)}
-              beforeMount={beforeMount}
-              options={{
-                minimap: { enabled: true },
-                fontSize: 14,
-                suggestOnTriggerCharacters: true,
-                quickSuggestions: true,
-                snippetSuggestions: "inline",
-              }}
-            />
-            <button
-              onClick={() => RunCode()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
-        focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors mt-2"
-            >
-              {isRunning ? "STOP" : "RUN"}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* {allProjNames.map((proj) => (
-        <button
-          onClick={() => {
-            setNewPageName(proj);
-            // console.log("project name is now ", newPageName);
-            handleNewPageSubmitExsistingProject(proj);
-          }}
-          key={proj}
-          style={{ padding: "1rem", border: "1px solid #ccc" }}
-        >
-          {proj}
-        </button>
-      ))} */}
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black opacity-60"
-            onClick={() => setIsModalOpen(false)}
-          ></div>
-          <div
-            className="bg-gray-800 rounded-md shadow-lg z-10 overflow-hidden border border-gray-700"
-            style={{ width: "380px", maxWidth: "95%" }}
-            key={`modal-${modalKey}`}
-          >
-            <div className="border-b border-gray-700 px-5 py-4">
-              <h3 className="text-lg font-semibold text-gray-200">
-                New Project
-              </h3>
+                    <Page pageId={page.Id} removePage={handleRemovePage} />
+                  </TabPanel>
+                ))}
+              </Tabs>
             </div>
 
-            <div className="p-5">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Project Name
-              </label>
-              <input
-                key={`input-${modalKey}`}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-600 rounded-md 
+            {isProjectBrowserVisible && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  left: "0",
+                  width: `${projectBrowserWidth}%`,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  padding: "10px",
+                  background: "#374151",
+                  boxShadow: "5px 0 15px rgba(0, 0, 0, 0.1)",
+                  zIndex: 100,
+                  border: "1px solid #4B5563",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    right: "0",
+                    top: "0",
+                    width: "8px",
+                    height: "100%",
+                    cursor: "ew-resize",
+                    zIndex: 101,
+                  }}
+                  onMouseDown={handleProjectBrowserResizeStart}
+                  className={`resize-handle ${
+                    isProjectBrowserResizing ? "resize-active" : ""
+                  }`}
+                />
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3
+                    style={{ color: "white" }}
+                    className="text-xl font-semibold"
+                  >
+                    Projects
+                  </h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setProjectViewMode("grid")}
+                      className={`p-2 rounded ${
+                        projectViewMode === "grid"
+                          ? "bg-indigo-600"
+                          : "bg-gray-700"
+                      }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        className="text-white"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setProjectViewMode("list")}
+                      className={`p-2 rounded ${
+                        projectViewMode === "list"
+                          ? "bg-indigo-600"
+                          : "bg-gray-700"
+                      }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        className="text-white"
+                        viewBox="0 0 16 16"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setIsProjectBrowserVisible(false)}
+                      className="p-2 rounded bg-gray-700 hover:bg-gray-600"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-gray-400"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search */}
+                <div className="mb-4 relative">
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    className="project-filter"
+                    value={projectSearchQuery}
+                    onChange={(e) => setProjectSearchQuery(e.target.value)}
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    className="absolute top-3 right-3 text-gray-400"
+                    viewBox="0 0 16 16"
+                  >
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                  </svg>
+                </div>
+
+                {/* Project List */}
+                <div className="overflow-y-auto flex-1">
+                  {projectViewMode === "grid" ? (
+                    <div className="grid-view">
+                      {allProjNames
+                        .filter(
+                          (proj) =>
+                            proj &&
+                            proj.trim() !== "" &&
+                            (!projectSearchQuery ||
+                              proj
+                                .toLowerCase()
+                                .includes(projectSearchQuery.toLowerCase()))
+                        )
+                        .map((proj) => (
+                          <div
+                            key={proj}
+                            className="project-grid-item group"
+                            onClick={() => {
+                              setNewPageName(proj);
+                              handleNewPageSubmitExsistingProject(proj);
+                            }}
+                          >
+                            <div className="project-thumbnail">
+                              <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                <FaMicrochip
+                                  size={32}
+                                  className="text-indigo-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="project-info">
+                              <div className="project-name">{proj}</div>
+                              <div className="project-date">
+                                {new Date().toLocaleDateString()}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProject(proj);
+                              }}
+                              className="delete-button"
+                            >
+                              <FaTrash size={12} />
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="list-view">
+                      {allProjNames
+                        .filter(
+                          (proj) =>
+                            proj &&
+                            proj.trim() !== "" &&
+                            (!projectSearchQuery ||
+                              proj
+                                .toLowerCase()
+                                .includes(projectSearchQuery.toLowerCase()))
+                        )
+                        .map((proj) => (
+                          <div
+                            key={proj}
+                            className="project-list-item"
+                            onClick={() => {
+                              setNewPageName(proj);
+                              handleNewPageSubmitExsistingProject(proj);
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-gray-800 rounded flex items-center justify-center mr-3">
+                                <FaMicrochip className="text-indigo-500" />
+                              </div>
+                              <div>
+                                <div className="project-name">{proj}</div>
+                                <div className="project-date">
+                                  {new Date().toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProject(proj);
+                              }}
+                              className="text-red-500 hover:text-red-700 focus:outline-none"
+                            >
+                              <FaTrash size={12} />
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isEditorVisible && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "0",
+                  right: "0",
+                  width: `${editorWidth}%`,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  padding: "10px",
+                  background: "#374151",
+                  boxShadow: "-5px 0 15px rgba(0, 0, 0, 0.1)",
+                  zIndex: 100,
+                  border: "1px solid #4B5563",
+                }}
+                className="dark:bg-gray-800 dark:border-gray-700"
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "0",
+                    top: "0",
+                    width: "8px",
+                    height: "100%",
+                    cursor: "ew-resize",
+                    zIndex: 101,
+                  }}
+                  onMouseDown={handleResizeStart}
+                  className={`resize-handle ${
+                    isResizing ? "resize-active" : ""
+                  }`}
+                />
+                <h3 style={{ color: "white", marginBottom: "10px" }}>
+                  Code Editor
+                </h3>
+                <Editor
+                  height="calc(100% - 80px)"
+                  defaultLanguage="cpp"
+                  defaultValue={defaultCode}
+                  theme="vs-dark"
+                  onChange={(value) => setDefaultCode(value)}
+                  beforeMount={beforeMount}
+                  options={{
+                    minimap: { enabled: true },
+                    fontSize: 14,
+                    suggestOnTriggerCharacters: true,
+                    quickSuggestions: true,
+                    snippetSuggestions: "inline",
+                  }}
+                />
+                <button
+                  onClick={() => RunCode()}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+        focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors mt-2"
+                >
+                  {isRunning ? "STOP" : "RUN"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {isModalOpen && (
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <div
+                className="absolute inset-0 bg-black opacity-60"
+                onClick={() => setIsModalOpen(false)}
+              ></div>
+              <div
+                className="bg-gray-800 rounded-md shadow-lg z-10 overflow-hidden border border-gray-700"
+                style={{ width: "380px", maxWidth: "95%" }}
+                key={`modal-${modalKey}`}
+              >
+                <div className="border-b border-gray-700 px-5 py-4">
+                  <h3 className="text-lg font-semibold text-gray-200">
+                    New Project
+                  </h3>
+                </div>
+
+                <div className="p-5">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Name
+                  </label>
+                  <input
+                    key={`input-${modalKey}`}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-600 rounded-md 
               bg-gray-700 text-gray-100
               focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                value={newPageName}
-                onChange={(e) => setNewPageName(e.target.value)}
-                placeholder="Enter project name"
-                autoFocus
-              />
-            </div>
+                    value={newPageName}
+                    onChange={(e) => setNewPageName(e.target.value)}
+                    placeholder="Enter project name"
+                    autoFocus
+                  />
+                </div>
 
-            <div className="bg-gray-900 px-5 py-4 flex justify-end gap-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-gray-700 border border-gray-600
+                <div className="bg-gray-900 px-5 py-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 bg-gray-700 border border-gray-600
               text-gray-200 rounded-md hover:bg-gray-600 
               focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (!newPageName.trim()) {
-                    alert("Please enter a project name");
-                    return;
-                  }
-                  handleNewPageSubmit();
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!newPageName.trim()) {
+                        alert("Please enter a project name");
+                        return;
+                      }
+                      handleNewPageSubmit();
+                    }}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700
               focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              >
-                Create Project
-              </button>
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
-      </div>
-      )} 
     </div>
-    );
-  }
+  );
+}
