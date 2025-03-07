@@ -1,5 +1,6 @@
 const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   packagerConfig: {
@@ -45,6 +46,19 @@ module.exports = {
               },
             },
           ],
+        },
+        // Add these Webpack configuration overrides
+        additionalConfig: {
+          optimization: {
+            minimizer: [
+              new TerserPlugin({
+                terserOptions: {
+                  keep_classnames: true,
+                  keep_fnames: true,
+                },
+              }),
+            ],
+          },
         },
       },
     },

@@ -1,4 +1,5 @@
 const rules = require("./webpack.rules");
+const TerserPlugin = require("terser-webpack-plugin");
 
 rules.push({
   test: /\.css$/,
@@ -20,5 +21,16 @@ module.exports = {
   // Put your normal webpack config below here
   module: {
     rules,
+  },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          keep_classnames: true,
+          keep_fnames: true,
+        },
+      }),
+    ],
   },
 };
