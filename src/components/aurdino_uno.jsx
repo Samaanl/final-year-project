@@ -59,7 +59,7 @@ export function ArduinoUnoR3(props) {
         type="source"
         position={Position.Right}
         id={`handle-source-${pinId}`}
-        className="w-5 h-5 rounded-full opacity-0"
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",
@@ -72,7 +72,7 @@ export function ArduinoUnoR3(props) {
         type="target"
         position={Position.Right}
         id={`handle-target-${pinId}`}
-        className="w-5 h-5 rounded-full opacity-0"
+        className="w-2 h-2 rounded-full"
         style={{
           position: "absolute",
           top: "50%",

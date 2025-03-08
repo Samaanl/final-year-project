@@ -87,7 +87,6 @@ export function Resistor(props) {
               left: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
-              zIndex: 10,
             }}
           />
           <Handle
@@ -99,7 +98,6 @@ export function Resistor(props) {
               left: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
-              zIndex: 10,
             }}
           />
 
@@ -113,7 +111,6 @@ export function Resistor(props) {
               right: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
-              zIndex: 10,
             }}
           />
           <Handle
@@ -125,7 +122,6 @@ export function Resistor(props) {
               right: `-${size.width / 2 + 15}px`,
               top: '50%',
               transform: 'translateY(-50%)',
-              zIndex: 10,
             }}
           />
 

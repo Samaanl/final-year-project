@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect,useMemo } from "react";
 import { Button, Drawer, Modal, TextInput } from "flowbite-react";
 
 import { v4 as uuidv4 } from "uuid";
@@ -47,6 +47,8 @@ import "./Toolbar.css"; // Import the new CSS file
 import "./components/ComponentsSection.css";
 import "./components/ProjectBrowser.css";
 import { arduinoLanguageConfig } from "./editorSyntax.js";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 window.Buffer = window.Buffer || Buffer;
 
@@ -118,15 +120,29 @@ const CustomNode = ({ data, id, onResistorValueChange, onDelete }) => {
   );
 };
 
-let ArduinoCode = `void setup() {
-  pinMode(13, OUTPUT);
+let ArduinoCode = `// Arduino code to blink two LEDs alternately
+// Connect one LED to pin 12 and another to pin 13
+
+int led1 = 12;  // First LED connected to digital pin 12
+int led2 = 13;  // Second LED connected to digital pin 13
+int delayTime = 50;  // Delay in milliseconds
+
+void setup() {
+  // Initialize both digital pins as outputs
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
 }
 
 void loop() {
-  digitalWrite(13, HIGH);  
-  delay(1000);                      
-  digitalWrite(13, LOW);   
-  delay(1000);                      
+  // Turn on first LED, turn off second LED
+  digitalWrite(led1, HIGH);
+  digitalWrite(led2, LOW);
+  delay(delayTime);
+  
+  // Turn off first LED, turn on second LED
+  digitalWrite(led1, LOW);
+  digitalWrite(led2, HIGH);
+  delay(delayTime);
 }
   `;
 
@@ -164,9 +180,32 @@ const beforeMount = (monaco) => {
 
 // Main App component
 export default function App() {
+  const [pinState, setPinState] = useState({
+    0: false,
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+    7: false,
+    8: false,
+    9: false,
+    10: false,
+    11: false,
+    12: false,
+    13: false, 
+  }); 
+  // Add a version counter to force re-renders when pin states change
+  const [pinStateVersion, setPinStateVersion] = useState(0);
+  // Add a ref to hold real-time hardware pin states that can be accessed directly by components
+  const realPinStatesRef = useRef({
+    0: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false,
+    8: false, 9: false, 10: false, 11: false, 12: false, 13: false
+  });
   const [pages, setPages] = useState([]); // State to manage the list of pages
   const [pageCounter, setPageCounter] = useState(1); // Counter to generate unique page IDs
-  const ledState13Ref = useRef(false); // Use useRef instead of useState
+  const ledStateRef = useRef(false); 
   const [defaultCode, setDefaultCode] = useState(ArduinoCode);
   const [resultOfHex, setresultOfHex] = useState("nothing");
   const [allProjNames, setallProjNames] = useState([]);
@@ -197,6 +236,8 @@ export default function App() {
   // Add this state near your other state declarations
   const [isRunning, setIsRunning] = useState(false);
   const cpuLoopRef = useRef(null);
+  const [ledState, setLedState] = useState(true); // Set initial state to true
+  const [isActive, setIsActive] = useState(false); // Add isActive state variable
 
   // Reference to the root element for CSS variable manipulation
   const rootRef = useRef(null);
@@ -334,7 +375,8 @@ export default function App() {
   }, []);
 
   // Page component to handle each individual page
-  const Page = ({ pageId, removePage }) => {
+  const Page = useMemo(() => {
+    return ({ pageId, removePage }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [idCounter, setIdCounter] = useState(1);
@@ -368,8 +410,56 @@ export default function App() {
     }, []);
 
     const onConnect = useCallback(
-      (params) => setEdges((els) => addEdge(params, els)),
-      []
+      (params) => {
+        // Get the source and target nodes
+        const sourceNode = nodes.find(node => node.id === params.source);
+        const targetNode = nodes.find(node => node.id === params.target);
+
+        if (sourceNode && targetNode) {
+          // Get component types and handle names
+          const sourceType = sourceNode.type;
+          const targetType = targetNode.type;
+          const sourceHandle = params.sourceHandle;
+          const targetHandle = params.targetHandle;
+
+          // Create a notification message
+          let notificationMessage = `Connected ${sourceType} (${sourceHandle}) to ${targetType} (${targetHandle})`;
+
+          // Add specific component notifications
+          if ((sourceType === 'led' && targetType === 'arduinoUno') || 
+              (targetType === 'led' && sourceType === 'arduinoUno')) {
+            const led = sourceType === 'led' ? sourceNode : targetNode;
+            const arduino = sourceType === 'arduinoUno' ? sourceNode : targetNode;
+            const pin = sourceType === 'arduinoUno' ? sourceHandle : targetHandle;
+            notificationMessage = `LED ${sourceType === 'led' ? sourceHandle : targetHandle} connected to Arduino Uno ${pin}`;
+            toast.info(notificationMessage, {
+              icon: "💡"
+            });
+          } else if ((sourceType === 'resistor' || targetType === 'resistor')) {
+            const resistor = sourceType === 'resistor' ? sourceNode : targetNode;
+            const otherComponent = sourceType === 'resistor' ? targetNode : sourceNode;
+            notificationMessage = `Resistor ${sourceType === 'resistor' ? sourceHandle : targetHandle} connected to ${otherComponent.type} ${sourceType === 'resistor' ? targetHandle : sourceHandle}`;
+            toast.info(notificationMessage, {
+              icon: "⚡"
+            });
+          } else if ((sourceType === 'breadboard' || targetType === 'breadboard')) {
+            const breadboard = sourceType === 'breadboard' ? sourceNode : targetNode;
+            const otherComponent = sourceType === 'breadboard' ? targetNode : sourceNode;
+            notificationMessage = `Breadboard ${sourceType === 'breadboard' ? sourceHandle : targetHandle} connected to ${otherComponent.type} ${sourceType === 'breadboard' ? targetHandle : sourceHandle}`;
+            toast.info(notificationMessage, {
+              icon: "🔌"
+            });
+          } else {
+            toast.info(notificationMessage, {
+              icon: "🔗"
+            });
+          }
+        }
+
+        // Create the edge connection
+        setEdges((eds) => addEdge(params, eds));
+      },
+      [nodes]
     );
 
     const handleDeleteNode = (id) => {
@@ -385,11 +475,11 @@ export default function App() {
       setResistorValues(storedValues);
     }, []);
 
-    const addNode = (Component, width, height, pos, initialData = {}) => {
+    const addNode = (Component, width, height, pos, initialData = {}, shouldBlink = false) => {
       const position = { x: pos.x, y: pos.y };
       const isLEDComponent = Component.name === "LED";
       const uniqueId = uuidv4(); // Generate a unique ID using uuid
-
+    
       const newNode = {
         id: uniqueId,
         type: "custom",
@@ -400,8 +490,13 @@ export default function App() {
               id={`component-${idCounter}`}
               pos={position}
               onDelete={handleDeleteNode}
-              {...(isLEDComponent && { brightness: ledState13Ref.current })}
-              {...(isLEDComponent && { ledStateRef: ledState13Ref })}
+              pinState={pinState}
+              shouldBlink={shouldBlink}
+              isConnected={false}
+              pin={undefined}
+              realPinStatesRef={isLEDComponent ? realPinStatesRef : undefined}
+              style={{ pointerEvents: 'all' }}
+              {...initialData}
             />
           ),
           width,
@@ -415,7 +510,140 @@ export default function App() {
       };
       setNodes((nds) => [...nds, newNode]);
       setIdCounter((prev) => prev + 1);
+      console.log("Node added:", newNode);
     };
+    
+
+    const [successNotificationShown, setSuccessNotificationShown] = useState({});
+
+      useEffect(() => {
+        console.log("Pin state updated in MemoizedPage:", pinState);
+        console.log("Pin state version:", pinStateVersion); // Log version changes
+        
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.data.component.type.name === "LED") {
+              const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
+              const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
+              if (!resistors.length) return node;
+              
+              // Find the resistor that's connected to this LED
+              const connectedResistor = resistors.find(resistor => {
+                const ledToResistor = edges.find(
+                  edge => 
+                    ((edge.source === node.id && edge.target === resistor.id &&
+                      edge.sourceHandle === "anode-source" && 
+                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
+                    (edge.source === resistor.id && edge.target === node.id &&
+                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
+                      edge.targetHandle === "anode-target"))
+                );
+                
+                if (!ledToResistor) return false;
+
+                // Check if resistor is connected to any digital pin
+                const resistorToArduino = edges.find(
+                  edge =>
+                    ((edge.source === resistor.id && edge.target === arduinoNode?.id &&
+                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
+                      edge.targetHandle.includes("handle-target-digital-")) ||
+                    (edge.source === arduinoNode?.id && edge.target === resistor.id &&
+                      edge.sourceHandle.includes("handle-source-digital-") && 
+                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")))
+                );
+
+                return Boolean(resistorToArduino);
+              });
+
+              // Check if cathode is connected to GND
+              const isCathodeConnectedToGND = Boolean(
+                edges.find(edge => 
+                  (edge.source === node.id && 
+                    edge.target === arduinoNode?.id && 
+                    edge.sourceHandle === "cathode-source" && 
+                    (edge.targetHandle === "handle-target-power-GND1" || 
+                     edge.targetHandle === "handle-target-power-GND2")) ||
+                  (edge.source === arduinoNode?.id && 
+                    edge.target === node.id && 
+                    (edge.sourceHandle === "handle-source-power-GND1" || 
+                     edge.sourceHandle === "handle-source-power-GND2") && 
+                     edge.targetHandle === "cathode-target")
+                )
+              );
+
+              // Find which digital pin the LED is connected to (via resistor)
+              const pinConnections = edges.filter(edge => 
+                (edge.source === arduinoNode?.id && 
+                  resistors.some(resistor => 
+                    edge.target === resistor.id && 
+                    edge.sourceHandle.includes('digital') && 
+                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
+                  )
+                ) ||
+                (edge.target === arduinoNode?.id && 
+                  resistors.some(resistor => 
+                    edge.source === resistor.id && 
+                    edge.targetHandle.includes('digital') && 
+                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
+                  )
+                )
+              );
+
+              const pinNumber = parseInt(
+                pinConnections.find(edge => edge.source === arduinoNode?.id)?.sourceHandle?.match(/\d+/)?.[0] || 
+                pinConnections.find(edge => edge.target === arduinoNode?.id)?.targetHandle?.match(/\d+/)?.[0]
+              );
+
+              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
+
+              // Debug logs
+              console.log(`LED ${node.id} connection check:`, {
+                hasConnectedResistor: Boolean(connectedResistor),
+                isCathodeConnectedToGND,
+                pinNumber,
+                isProperlyConnected,
+                pinState: isProperlyConnected ? pinState[pinNumber] : undefined
+              });
+
+              // CRITICAL FIX: Force LED to acknowledge pin state on every update
+              const newPinState = {...pinState};
+              const actualPinState = pinNumber !== undefined ? pinState[pinNumber] : false;
+              
+              // Force recreation of component to ensure it gets the latest props
+              const clonedProps = {
+                ...node.data.component.props,
+                isConnected: isProperlyConnected,
+                shouldBlink: isProperlyConnected && actualPinState,
+                pinState: newPinState,
+                pin: pinNumber,
+                pinStateVersion: pinStateVersion, // Add version to force updates
+                forceUpdate: Date.now(), // Add timestamp to force re-render
+                key: `led-${node.id}-${Date.now()}-${pinStateVersion}`, // Include version in key
+                realPinStatesRef: realPinStatesRef, // Pass direct hardware pin states ref
+              };
+              
+              // Create new component with fresh props
+              const newComponent = React.createElement(
+                node.data.component.type,
+                clonedProps
+              );
+              
+              console.log(`RECREATING LED ${node.id} with pin ${pinNumber}, state:`, 
+                actualPinState ? "HIGH" : "LOW");
+
+              // Create a new component instance with updated props
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  component: newComponent
+                },
+              };
+            }
+            return node;
+          })
+        );
+      }, [edges, nodes, pinState, pinStateVersion]);
 
     const handleResistorValueChange = (id, value) => {
       setResistorValues((prev) => {
@@ -468,12 +696,9 @@ export default function App() {
         fetch(`http://127.0.0.1:3512/getData/${newPageName}`)
           .then((res) => res.json())
           .then((data) => {
-            // setfetchData(data.data);
-            // autoled();
-            console.log("autoled i have fetched data from db", data.data);
+            console.log("Fetched data from db", data.data);
             autoled(data.data);
           })
-          // console.log("autoled i have fetched data from db");
           .catch((err) => {
             console.error("Error fetching data:", err);
           });
@@ -553,10 +778,16 @@ export default function App() {
       if (nodes.length === 0 && edges.length === 0) return;
 
       // Check if current state is different from last saved state
-      const currentState = JSON.stringify({ nodes, edges });
-      const savedState = JSON.stringify(lastSavedState);
+      const currentState = {
+        nodes: nodes.map(node => ({ ...node, data: { ...node.data, component: null } })),
+        edges: edges.map(edge => ({ ...edge }))
+      };
+      const savedState = {
+        nodes: lastSavedState.nodes.map(node => ({ ...node, data: { ...node.data, component: null } })),
+        edges: lastSavedState.edges.map(edge => ({ ...edge }))
+      };
 
-      if (currentState !== savedState) {
+      if (JSON.stringify(currentState) !== JSON.stringify(savedState)) {
         setHasUnsavedChanges(true);
       }
     }, [nodes, edges]);
@@ -635,7 +866,7 @@ export default function App() {
           </button>
           <h3 className="components-header">Components</h3>
           <button
-            onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 })}
+            onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 },true)}
             className="component-button"
           >
             <FaLightbulb style={{ marginRight: "5px" }} />
@@ -779,6 +1010,7 @@ export default function App() {
       </div>
     );
   };
+}, []);
 
   // Function to handle the creation of a new page
   const handleNewPageClick = () => {
@@ -871,65 +1103,137 @@ export default function App() {
     // setIsRunning(true);
 
     //compile the source code to arduino redable hex
-    const response = await fetch("http://localhost:3512/compile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: defaultCode }),
-    });
-
-    // const result = await response.json();
-    // ledState13Ref.current = result.hex;
-    // load the hex file to the ardunio cpu
-    const result = await response.json();
-    const { data } = parse(result.hex);
-    const progData = new Uint8Array(data);
-    const data16 = new Uint16Array(progData.buffer);
-    if (response.ok) {
-      console.log("Compiled Hex File:", result.hex);
-    } else {
-      const error = await response.json();
-      console.error("Compilation error:", error.error);
+    if (isRunning) {
+      console.log("Stopping code execution");
+      setIsRunning(false);
+      if (cpuLoopRef.current) {
+        clearInterval(cpuLoopRef.current);
+        cpuLoopRef.current = null;
+      }
+      
+      // Reset all pin states to LOW when stopping
+      const resetPinState = {};
+      for (let pin = 0; pin <= 13; pin++) {
+        resetPinState[pin] = false;
+      }
+      setPinState(resetPinState);
+      setPinStateVersion(v => v + 1);
+      
+      return;
     }
-    // console.log("Program Memory:", data16);
+    
+    console.log("Starting code execution");
+    setIsRunning(true);
 
-    const cpu = new CPU(data16);
-    console.log("CPU Initialized:", cpu);
+    try {
+      const response = await fetch("http://localhost:3512/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: defaultCode }),
+      });
 
-    //attach the virtual hardware
-    const port = new AVRIOPort(cpu, portDConfig);
-    const portB = new AVRIOPort(cpu, portBConfig);
+      const result = await response.json();
+      console.log("Compilation result:", result);
+      setresultOfHex(result.hex);
+      
+      const { data } = parse(result.hex);
+      const progData = new Uint8Array(data);
+      const data16 = new Uint16Array(progData.buffer);
 
-    console.log("Attaching listener to port...");
+      const cpu = new CPU(data16);
+      const portD = new AVRIOPort(cpu, portDConfig);
+      const portB = new AVRIOPort(cpu, portBConfig);
+      const timer = new AVRTimer(cpu, timer0Config);
 
-    // portB.addListener(() => {
-    //   const turnon = portB.pinState(5) === PinState.High;
-    //   ledState13Ref.current = turnon;
-    // });
-    portB.addListener(() => {
-      const turnon = portB.pinState(5) === PinState.High;
-      console.log("LED on pin 13 is", turnon);
-      ledState13Ref.current = turnon;
-    });
-
-    // Add a manual state check to verify port state directly
-    // console.log("Initial pin state:", port.pinState(7));
-    const timer = new AVRTimer(cpu, timer0Config);
-
-    //run the instaruction one by one
-    while (true) {
-      for (let i = 0; i < 500000; i++) {
+      // CRITICAL FIX: Direct pin state update function
+      const directUpdatePinStates = () => {
+        // Create a fresh state object
+        const newPinStates = {};
+        
+        // Read all pin states directly from hardware
+        for (let pin = 0; pin <= 7; pin++) {
+          newPinStates[pin] = portD.pinState(pin) === PinState.High;
+        }
+        
+        for (let pin = 0; pin <= 5; pin++) {
+          newPinStates[pin + 8] = portB.pinState(pin) === PinState.High;
+        }
+        
+        // CRITICAL: Update the real-time ref with hardware pin states FIRST
+        realPinStatesRef.current = {...newPinStates};
+        
+        // CRITICAL: Force React state update with NO COMPARISON
+        setPinState(() => ({...newPinStates}));
+        setPinStateVersion(v => v + 1);
+      };
+      
+      // Run initialization cycles
+      for (let i = 0; i < 500000; i++) {  // Reduced initialization cycles
         avrInstruction(cpu);
         cpu.tick();
-        // cpu.maxInterrupt;
       }
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      
+      // Initialize pin states
+      directUpdatePinStates();
+
+      // Add direct port listeners
+      portD.addListener(() => {
+        console.log("**PORT D CHANGED - DIRECT UPDATE**");
+        directUpdatePinStates();
+      });
+      
+      portB.addListener(() => {
+        console.log("**PORT B CHANGED - DIRECT UPDATE**");
+        directUpdatePinStates();
+      });
+
+      console.log("Starting CPU execution loop");
+      
+      // Main execution loop with optimized timing
+      cpuLoopRef.current = setInterval(() => {
+        // Run a smaller batch of instructions for more responsive updates
+        for (let i = 0; i < 50000; i++) {  // Reduced from 5,000 to 1,000 for more accurate timing
+          avrInstruction(cpu);
+          cpu.tick();
+        }
+        
+        // Always force pin state updates
+        directUpdatePinStates();
+        
+      }, 1); // Reduced from 15ms to 1ms for more precise timing
+        
+    } catch (error) {
+      console.error("Error running code:", error);
+      setIsRunning(false);
     }
   };
 
   console.log(`the hex is ${resultOfHex}`);
   console.log("is running", isRunning);
+
+  // Add state management and effect to make the LED blink based on the pin state changes
+  const [ledBlinkState, setLedBlinkState] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLedBlinkState(prevState => !prevState); // Toggle LED state
+    }, 5); // Change this interval as needed
+
+    return () => clearInterval(interval);
+  }, []);
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       {showWelcomeScreen ? (
         <div
           className="welcome-screen"
@@ -954,6 +1258,7 @@ export default function App() {
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
               focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex items-center"
             >
+              
               <MdNoteAdd className="mr-1" /> New Project
             </button>
           </div>
@@ -995,7 +1300,7 @@ export default function App() {
                 className="text-white"
                 viewBox="0 0 16 16"
               >
-                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
+                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a.5.5 0 0 1 1.5 1.5v3a.5.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
               </svg>
             </button>
             <button
@@ -1313,7 +1618,7 @@ export default function App() {
                         className="text-white"
                         viewBox="0 0 16 16"
                       >
-                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
+                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a.5.5 0 0 1 1.5 1.5v3a.5.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z" />
                       </svg>
                     </button>
                     <button
