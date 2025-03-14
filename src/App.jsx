@@ -425,7 +425,7 @@ export default function App() {
           // Create a notification message
           let notificationMessage = `Connected ${sourceType} (${sourceHandle}) to ${targetType} (${targetHandle})`;
 
-          // Add specific component notifications
+          // Add specific component notifications and validations
           if ((sourceType === 'led' && targetType === 'arduinoUno') || 
               (targetType === 'led' && sourceType === 'arduinoUno')) {
             const led = sourceType === 'led' ? sourceNode : targetNode;
@@ -445,10 +445,72 @@ export default function App() {
           } else if ((sourceType === 'breadboard' || targetType === 'breadboard')) {
             const breadboard = sourceType === 'breadboard' ? sourceNode : targetNode;
             const otherComponent = sourceType === 'breadboard' ? targetNode : sourceNode;
-            notificationMessage = `Breadboard ${sourceType === 'breadboard' ? sourceHandle : targetHandle} connected to ${otherComponent.type} ${sourceType === 'breadboard' ? targetHandle : sourceHandle}`;
-            toast.info(notificationMessage, {
-              icon: "🔌"
-            });
+            const breadboardHandle = sourceType === 'breadboard' ? sourceHandle : targetHandle;
+            const otherHandle = sourceType === 'breadboard' ? targetHandle : sourceHandle;
+
+            // Validate breadboard connections
+            if (breadboardHandle.includes('power')) {
+              // Power rail connections
+              if (otherComponent.type === 'arduinoUno') {
+                if (breadboardHandle.includes('red') && otherHandle.includes('5V')) {
+                  notificationMessage = `Breadboard power rail (+) connected to Arduino 5V`;
+                  toast.success(notificationMessage, { icon: "🔌" });
+                } else if (breadboardHandle.includes('blue') && otherHandle.includes('GND')) {
+                  notificationMessage = `Breadboard ground rail (-) connected to Arduino GND`;
+                  toast.success(notificationMessage, { icon: "🔌" });
+                } else {
+                  toast.error("Invalid power connection! Connect red rail to 5V and blue rail to GND", { icon: "⚠️" });
+                  return;
+                }
+              } else {
+                toast.error("Power rails can only be connected to Arduino power pins", { icon: "⚠️" });
+                return;
+              }
+            } else if (breadboardHandle.includes('main')) {
+              // Main breadboard area connections
+              if (otherComponent.type === 'led' || otherComponent.type === 'resistor') {
+                // Check if this component is connected to Arduino through breadboard
+                const existingEdges = edges.filter(edge => 
+                  (edge.source === otherComponent.id || edge.target === otherComponent.id) &&
+                  (edge.source === breadboard.id || edge.target === breadboard.id)
+                );
+
+                // Find Arduino connection through breadboard
+                const arduinoConnection = edges.find(edge => 
+                  (edge.source === breadboard.id || edge.target === breadboard.id) &&
+                  (edge.source === nodes.find(n => n.type === 'arduinoUno')?.id || 
+                   edge.target === nodes.find(n => n.type === 'arduinoUno')?.id)
+                );
+
+                if (arduinoConnection) {
+                  const arduinoNode = nodes.find(n => n.id === arduinoConnection.source || n.id === arduinoConnection.target);
+                  const arduinoPin = arduinoConnection.source === arduinoNode.id ? 
+                    arduinoConnection.sourceHandle : arduinoConnection.targetHandle;
+                  
+                  if (arduinoPin.includes('digital') || arduinoPin.includes('analog')) {
+                    notificationMessage = `Component connected to Arduino ${arduinoPin} through breadboard`;
+                    toast.info(notificationMessage, { icon: "🔌" });
+                  }
+                } else {
+                  notificationMessage = `Component connected to breadboard at ${breadboardHandle}`;
+                  toast.info(notificationMessage, { icon: "🔌" });
+                }
+              } else if (otherComponent.type === 'arduinoUno') {
+                if (otherHandle.includes('digital') || otherHandle.includes('analog')) {
+                  notificationMessage = `Arduino pin ${otherHandle} connected to breadboard`;
+                  toast.info(notificationMessage, { icon: "🔌" });
+                } else {
+                  toast.error("Invalid connection! Only digital/analog pins can connect to main breadboard area", { icon: "⚠️" });
+                  return;
+                }
+              } else {
+                toast.error("Invalid connection! Main breadboard area can only connect to components or Arduino pins", { icon: "⚠️" });
+                return;
+              }
+            } else {
+              toast.error("Invalid breadboard connection!", { icon: "⚠️" });
+              return;
+            }
           } else {
             toast.info(notificationMessage, {
               icon: "🔗"
@@ -459,7 +521,7 @@ export default function App() {
         // Create the edge connection
         setEdges((eds) => addEdge(params, eds));
       },
-      [nodes]
+      [nodes, edges]
     );
 
     const handleDeleteNode = (id) => {
@@ -518,46 +580,188 @@ export default function App() {
 
       useEffect(() => {
         console.log("Pin state updated in MemoizedPage:", pinState);
-        console.log("Pin state version:", pinStateVersion); // Log version changes
+        console.log("Pin state version:", pinStateVersion);
+        
+        // First, identify breadboard power rail connections to Arduino pins
+        const breadboardNode = nodes.find(n => n.data.component.type.name === "Breadboard");
+        const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
+        
+        // Create maps to track which rail is connected to which Arduino pin
+        const breadboardRailConnections = {
+          'top-red': null,
+          'top-blue': null,
+          'bottom-red': null,
+          'bottom-blue': null
+        };
+        
+        // If both breadboard and Arduino exist, check for connections between them
+        if (breadboardNode && arduinoNode) {
+          // Find all connections between Arduino and breadboard
+          const breadboardToArduinoEdges = edges.filter(edge => 
+            (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+            (edge.source === arduinoNode.id && edge.target === breadboardNode.id)
+          );
+          
+          // Map connections to determine which rails are connected to which Arduino pins
+          breadboardToArduinoEdges.forEach(edge => {
+            const breadboardHandle = edge.source === breadboardNode.id ? 
+              edge.sourceHandle : edge.targetHandle;
+            const arduinoHandle = edge.source === arduinoNode.id ? 
+              edge.sourceHandle : edge.targetHandle;
+            
+            // Extract pin number from Arduino handle
+            const pinMatch = arduinoHandle.match(/\d+/);
+            const pinNumber = pinMatch ? parseInt(pinMatch[0]) : null;
+            
+            // Determine which rail is connected based on the handle ID
+            if (breadboardHandle?.includes('rail')) {
+              // Identify which rail is connected
+              if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
+                breadboardRailConnections['top-red'] = pinNumber;
+              } else if (breadboardHandle.includes('top') && breadboardHandle.includes('blue')) {
+                breadboardRailConnections['top-blue'] = pinNumber;
+              } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
+                breadboardRailConnections['bottom-red'] = pinNumber;
+              } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('blue')) {
+                breadboardRailConnections['bottom-blue'] = pinNumber;
+              }
+            }
+          });
+        }
+        
+        console.log("Breadboard rail connections:", breadboardRailConnections);
         
         setNodes((nds) =>
           nds.map((node) => {
             if (node.data.component.type.name === "LED") {
               const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
               const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
-              if (!resistors.length) return node;
+              const breadboardNode = nodes.find(n => n.data.component.type.name === "Breadboard");
               
-              // Find the resistor that's connected to this LED
+              // Find all connections for this LED
+              const ledConnections = edges.filter(edge => 
+                edge.source === node.id || edge.target === node.id
+              );
+
+              // Find resistor connection
               const connectedResistor = resistors.find(resistor => {
-                const ledToResistor = edges.find(
-                  edge => 
-                    ((edge.source === node.id && edge.target === resistor.id &&
-                      edge.sourceHandle === "anode-source" && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
-                    (edge.source === resistor.id && edge.target === node.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
-                      edge.targetHandle === "anode-target"))
+                return ledConnections.some(edge => 
+                  (edge.source === node.id && edge.target === resistor.id && 
+                   edge.sourceHandle === "anode-source" && 
+                   (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
+                  (edge.source === resistor.id && edge.target === node.id &&
+                   (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
+                   edge.targetHandle === "anode-target")
                 );
-                
-                if (!ledToResistor) return false;
-
-                // Check if resistor is connected to any digital pin
-                const resistorToArduino = edges.find(
-                  edge =>
-                    ((edge.source === resistor.id && edge.target === arduinoNode?.id &&
-                      (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
-                      edge.targetHandle.includes("handle-target-digital-")) ||
-                    (edge.source === arduinoNode?.id && edge.target === resistor.id &&
-                      edge.sourceHandle.includes("handle-source-digital-") && 
-                      (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")))
-                );
-
-                return Boolean(resistorToArduino);
               });
+
+              // Find breadboard connection if exists
+              const breadboardConnection = ledConnections.find(edge => {
+                const otherNode = edge.source === node.id ? 
+                  nodes.find(n => n.id === edge.target) : 
+                  nodes.find(n => n.id === edge.source);
+                return otherNode?.data.component.type.name === "Breadboard";
+              });
+
+              // Find Arduino connection through breadboard or resistor
+              let pinNumber = undefined;
+              
+              if (arduinoNode) {
+                // First try direct connection
+                const directArduinoConnection = ledConnections.find(edge => 
+                  (edge.source === arduinoNode.id && edge.target === node.id && 
+                   edge.sourceHandle.includes('digital')) ||
+                  (edge.source === node.id && edge.target === arduinoNode.id && 
+                   edge.targetHandle.includes('digital'))
+                );
+
+                if (directArduinoConnection) {
+                  pinNumber = parseInt(
+                    directArduinoConnection.sourceHandle?.match(/\d+/)?.[0] || 
+                    directArduinoConnection.targetHandle?.match(/\d+/)?.[0]
+                  );
+                } else if (breadboardConnection) {
+                  // Check if LED is connected to a breadboard rail
+                  const breadboardHandle = breadboardConnection.source === breadboardNode.id ? 
+                    breadboardConnection.sourceHandle : 
+                    breadboardConnection.targetHandle;
+                  
+                  // Check if this handle is part of a rail
+                  if (breadboardHandle?.includes('rail')) {
+                    // Determine which rail this LED is connected to
+                    if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
+                      pinNumber = breadboardRailConnections['top-red'];
+                    } else if (breadboardHandle.includes('top') && breadboardHandle.includes('blue')) {
+                      pinNumber = breadboardRailConnections['top-blue'];
+                    } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
+                      pinNumber = breadboardRailConnections['bottom-red'];
+                    } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('blue')) {
+                      pinNumber = breadboardRailConnections['bottom-blue'];
+                    }
+                  } else {
+                    // For non-rail connections, check direct connections to the breadboard itself
+                    const breadboardToArduino = edges.find(edge => 
+                      (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+                      (edge.source === arduinoNode.id && edge.target === breadboardNode.id)
+                    );
+
+                    if (breadboardToArduino) {
+                      pinNumber = parseInt(
+                        breadboardToArduino.sourceHandle?.match(/\d+/)?.[0] || 
+                        breadboardToArduino.targetHandle?.match(/\d+/)?.[0]
+                      );
+                    }
+                  }
+                } else if (connectedResistor) {
+                  // Resistor could be connected to Arduino directly or through breadboard
+                  const resistorConnections = edges.filter(edge => 
+                    edge.source === connectedResistor.id || edge.target === connectedResistor.id
+                  );
+                  
+                  // Check direct resistor to Arduino connection
+                  const resistorToArduino = resistorConnections.find(edge => 
+                    (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                    (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                  );
+
+                  if (resistorToArduino) {
+                    pinNumber = parseInt(
+                      resistorToArduino.sourceHandle?.match(/\d+/)?.[0] || 
+                      resistorToArduino.targetHandle?.match(/\d+/)?.[0]
+                    );
+                  } else {
+                    // Check resistor to breadboard connection
+                    const resistorToBreadboard = resistorConnections.find(edge => 
+                      (edge.source === connectedResistor.id && edge.target === breadboardNode?.id) ||
+                      (edge.source === breadboardNode?.id && edge.target === connectedResistor.id)
+                    );
+                    
+                    if (resistorToBreadboard && breadboardNode) {
+                      const breadboardHandle = resistorToBreadboard.source === breadboardNode.id ? 
+                        resistorToBreadboard.sourceHandle : 
+                        resistorToBreadboard.targetHandle;
+                      
+                      // Check if resistor is connected to a breadboard rail
+                      if (breadboardHandle?.includes('rail')) {
+                        // Determine which rail this resistor is connected to
+                        if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
+                          pinNumber = breadboardRailConnections['top-red'];
+                        } else if (breadboardHandle.includes('top') && breadboardHandle.includes('blue')) {
+                          pinNumber = breadboardRailConnections['top-blue'];
+                        } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
+                          pinNumber = breadboardRailConnections['bottom-red'];
+                        } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('blue')) {
+                          pinNumber = breadboardRailConnections['bottom-blue'];
+                        }
+                      }
+                    }
+                  }
+                }
+              }
 
               // Check if cathode is connected to GND
               const isCathodeConnectedToGND = Boolean(
-                edges.find(edge => 
+                ledConnections.find(edge => 
                   (edge.source === node.id && 
                     edge.target === arduinoNode?.id && 
                     edge.sourceHandle === "cathode-source" && 
@@ -570,29 +774,36 @@ export default function App() {
                      edge.targetHandle === "cathode-target")
                 )
               );
-
-              // Find which digital pin the LED is connected to (via resistor)
-              const pinConnections = edges.filter(edge => 
-                (edge.source === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.target === resistor.id && 
-                    edge.sourceHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                ) ||
-                (edge.target === arduinoNode?.id && 
-                  resistors.some(resistor => 
-                    edge.source === resistor.id && 
-                    edge.targetHandle.includes('digital') && 
-                    edges.some(e => (e.source === resistor.id && e.target === node.id) || (e.source === node.id && e.target === resistor.id))
-                  )
-                )
-              );
-
-              const pinNumber = parseInt(
-                pinConnections.find(edge => edge.source === arduinoNode?.id)?.sourceHandle?.match(/\d+/)?.[0] || 
-                pinConnections.find(edge => edge.target === arduinoNode?.id)?.targetHandle?.match(/\d+/)?.[0]
-              );
+              
+              // Cathode could also be connected to a blue rail (GND)
+              if (!isCathodeConnectedToGND && breadboardNode) {
+                const cathodeToBreadboard = ledConnections.find(edge => 
+                  (edge.source === node.id && 
+                   edge.target === breadboardNode.id && 
+                   edge.sourceHandle === "cathode-source") ||
+                  (edge.source === breadboardNode.id && 
+                   edge.target === node.id && 
+                   edge.targetHandle === "cathode-target")
+                );
+                
+                if (cathodeToBreadboard) {
+                  const breadboardHandle = cathodeToBreadboard.source === breadboardNode.id ? 
+                    cathodeToBreadboard.sourceHandle : 
+                    cathodeToBreadboard.targetHandle;
+                  
+                  // Check if cathode is connected to a blue rail (GND)
+                  if (breadboardHandle?.includes('blue')) {
+                    // Check if this blue rail is connected to Arduino GND
+                    const railConnectedToGND = 
+                      (breadboardHandle.includes('top') && breadboardRailConnections['top-blue'] === 0) ||
+                      (breadboardHandle.includes('bottom') && breadboardRailConnections['bottom-blue'] === 0);
+                    
+                    if (railConnectedToGND) {
+                      isCathodeConnectedToGND = true;
+                    }
+                  }
+                }
+              }
 
               const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
 
@@ -605,7 +816,7 @@ export default function App() {
                 pinState: isProperlyConnected ? pinState[pinNumber] : undefined
               });
 
-              // CRITICAL FIX: Force LED to acknowledge pin state on every update
+              // Force LED to acknowledge pin state on every update
               const newPinState = {...pinState};
               const actualPinState = pinNumber !== undefined ? pinState[pinNumber] : false;
               
@@ -616,10 +827,10 @@ export default function App() {
                 shouldBlink: isProperlyConnected && actualPinState,
                 pinState: newPinState,
                 pin: pinNumber,
-                pinStateVersion: pinStateVersion, // Add version to force updates
-                forceUpdate: Date.now(), // Add timestamp to force re-render
-                key: `led-${node.id}-${Date.now()}-${pinStateVersion}`, // Include version in key
-                realPinStatesRef: realPinStatesRef, // Pass direct hardware pin states ref
+                pinStateVersion: pinStateVersion,
+                forceUpdate: Date.now(),
+                key: `led-${node.id}-${Date.now()}-${pinStateVersion}`,
+                realPinStatesRef: realPinStatesRef,
               };
               
               // Create new component with fresh props
@@ -631,7 +842,6 @@ export default function App() {
               console.log(`RECREATING LED ${node.id} with pin ${pinNumber}, state:`, 
                 actualPinState ? "HIGH" : "LOW");
 
-              // Create a new component instance with updated props
               return {
                 ...node,
                 data: {
