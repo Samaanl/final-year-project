@@ -67,6 +67,7 @@ export function Breadboard(props) {
             key={`hole-${rowIndex}-${colIndex}`}
             className="hole-container"
             style={{ position: 'relative', margin: '4px', padding: '4px' }}
+            data-column={colIndex}
           >
             <span className="hole"></span>
             <BreadboardHandle
@@ -74,6 +75,7 @@ export function Breadboard(props) {
               position={Position.Left}
               id={`handle-source-main-hole-${rowIndex}-${colIndex}`}
               className="w-2 h-2 bg-black-500 rounded-full absolute"
+              data-column={colIndex}
               style={{
                 top: '50%',
                 left: '100%',
@@ -85,6 +87,7 @@ export function Breadboard(props) {
               position={Position.Left}
               id={`handle-target-main-hole-${rowIndex}-${colIndex}`}
               className="w-2 h-2 bg-black-500 rounded-full absolute"
+              data-column={colIndex}
               style={{
                 top: '50%',
                 left: '100%',

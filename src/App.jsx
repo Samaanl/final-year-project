@@ -409,6 +409,70 @@ export default function App() {
       edgeReconnectSuccessful.current = true;
     }, []);
 
+    const [breadboardRailConnections, setBreadboardRailConnections] = useState({
+      'top-red': null,
+      'top-blue': null,
+      'bottom-red': null,
+      'bottom-blue': null
+    });
+    
+    // Track which Arduino pins are connected to which breadboard columns
+    const [breadboardColumnConnections, setBreadboardColumnConnections] = useState({});
+    
+    // Function to update the breadboard column to Arduino pin mapping
+    const updateBreadboardColumnConnections = useCallback(() => {
+      const newColumnConnections = {};
+      const breadboardNode = nodes.find(n => n.data.component.type.name === "Breadboard");
+      const arduinoNode = nodes.find(n => n.data.component.type.name === "ArduinoUnoR3");
+      
+      if (!breadboardNode || !arduinoNode) return;
+      
+      // Find all direct connections between Arduino and breadboard
+      const breadboardToArduinoEdges = edges.filter(edge => 
+        (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+        (edge.source === arduinoNode.id && edge.target === breadboardNode.id)
+      );
+      
+      breadboardToArduinoEdges.forEach(edge => {
+        const breadboardHandle = edge.source === breadboardNode.id ? 
+          edge.sourceHandle : edge.targetHandle;
+        const arduinoHandle = edge.source === arduinoNode.id ? 
+          edge.sourceHandle : edge.targetHandle;
+        
+        // Only process main hole connections (not rails)
+        if (breadboardHandle && breadboardHandle.includes('main-hole')) {
+          // Extract column number from breadboard handle
+          const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
+          if (colMatch) {
+            const columnIndex = parseInt(colMatch[1]);
+            
+            // Extract pin number from Arduino handle
+            if (arduinoHandle.includes('digital') || arduinoHandle.includes('analog')) {
+              const pinMatch = arduinoHandle.match(/\d+/);
+              const pinNumber = pinMatch ? parseInt(pinMatch[0]) : null;
+              
+              if (pinNumber !== null) {
+                console.log(`Mapping breadboard column ${columnIndex} to Arduino pin ${pinNumber}`);
+                newColumnConnections[columnIndex] = {
+                  pin: pinNumber,
+                  type: arduinoHandle.includes('digital') ? 'digital' : 'analog'
+                };
+              }
+            }
+          }
+        }
+      });
+      
+      // Update state with new mappings
+      setBreadboardColumnConnections(newColumnConnections);
+      console.log("Updated breadboard column connections:", newColumnConnections);
+    }, [nodes, edges]);
+    
+    // Run this effect whenever edges or nodes change
+    useEffect(() => {
+      updateBreadboardColumnConnections();
+    }, [edges, nodes, updateBreadboardColumnConnections]);
+
     const onConnect = useCallback(
       (params) => {
         // Get the source and target nodes
@@ -520,8 +584,13 @@ export default function App() {
 
         // Create the edge connection
         setEdges((eds) => addEdge(params, eds));
+        
+        // Update column mappings whenever a new connection is made
+        setTimeout(() => {
+          updateBreadboardColumnConnections();
+        }, 0);
       },
-      [nodes, edges]
+      [nodes, edges, updateBreadboardColumnConnections]
     );
 
     const handleDeleteNode = (id) => {
@@ -730,39 +799,57 @@ export default function App() {
                   connectionPath.push(`Breadboard handle: ${breadboardHandle}`);
                   
                   // Only set pin number from anode connections
-                  if (isAnodeConnection && breadboardHandle?.includes('rail')) {
-                    connectionPath.push("Anode connected to rail");
-                    // Determine which rail this LED is connected to
-                    if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
-                      pinNumber = breadboardRailConnections['top-red'];
-                      connectionPath.push(`Set pin number to ${pinNumber} from top red rail`);
-                    } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
-                      pinNumber = breadboardRailConnections['bottom-red'];
-                      connectionPath.push(`Set pin number to ${pinNumber} from bottom red rail`);
-                    }
-                    // Don't set pin number from blue rail connections, but also don't clear it
-                  } else if (!isCathodeConnection) {
-                    connectionPath.push("Non-cathode, non-rail connection");
-                    // For non-rail and non-cathode connections, check direct connections to the breadboard itself
-                    const breadboardToArduino = edges.find(edge => 
-                      (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
-                      (edge.source === arduinoNode.id && edge.target === breadboardNode.id)
-                    );
-
-                    if (breadboardToArduino) {
-                      connectionPath.push("Found breadboard to Arduino connection");
-                      const arduinoHandle = breadboardToArduino.source === arduinoNode.id ? 
-                        breadboardToArduino.sourceHandle : 
-                        breadboardToArduino.targetHandle;
-                      
-                      // Only use digital pins, not GND pins
-                      if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
-                        pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
-                        connectionPath.push(`Set pin number to ${pinNumber} from breadboard to Arduino`);
+                  if (isAnodeConnection) {
+                    if (breadboardHandle?.includes('rail')) {
+                      connectionPath.push("Anode connected to rail");
+                      // Determine which rail this LED is connected to
+                      if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
+                        pinNumber = breadboardRailConnections['top-red'];
+                        connectionPath.push(`Set pin number to ${pinNumber} from top red rail`);
+                      } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
+                        pinNumber = breadboardRailConnections['bottom-red'];
+                        connectionPath.push(`Set pin number to ${pinNumber} from bottom red rail`);
+                      }
+                    } else if (breadboardHandle?.includes('main-hole')) {
+                      // Extract column from breadboard handle for main holes
+                      const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
+                      if (colMatch) {
+                        const columnIndex = parseInt(colMatch[1]);
+                        connectionPath.push(`Anode connected to breadboard column ${columnIndex}`);
+                        
+                        // Check if this column is directly connected to an Arduino pin
+                        if (breadboardColumnConnections[columnIndex]) {
+                          pinNumber = breadboardColumnConnections[columnIndex].pin;
+                          connectionPath.push(`Set pin number to ${pinNumber} from column ${columnIndex} mapping`);
+                        } else {
+                          // If not directly connected, check connections in this column
+                          const mainAreaToArduino = edges.find(edge => {
+                            // Extract handle and check if it's in the same column
+                            const handleToCheck = edge.source === breadboardNode.id ? 
+                              edge.sourceHandle : edge.targetHandle;
+                            
+                            const sameColMatch = handleToCheck?.match(/main-hole-\d+-(\d+)/);
+                            const sameCol = sameColMatch ? parseInt(sameColMatch[1]) === columnIndex : false;
+                            
+                            return sameCol && (
+                              (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+                              (edge.source === arduinoNode.id && edge.target === breadboardNode.id)
+                            );
+                          });
+                          
+                          if (mainAreaToArduino) {
+                            const arduinoHandle = mainAreaToArduino.source === arduinoNode.id ? 
+                              mainAreaToArduino.sourceHandle : mainAreaToArduino.targetHandle;
+                            
+                            if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                              pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                              connectionPath.push(`Set pin number to ${pinNumber} from column Arduino connection`);
+                            }
+                          }
+                        }
                       }
                     }
                   }
-                  // If it's a cathode connection, don't modify pinNumber
                 } else if (connectedResistor) {
                   connectionPath.push("Checking resistor connection");
                   // Resistor could be connected to Arduino directly or through breadboard
@@ -830,59 +917,82 @@ export default function App() {
                         // Resistor connected to main area of breadboard
                         console.log("Resistor connected to main area of breadboard");
                         
-                        // Follow connections through the main area to find Arduino pin
-                        // Check if any connections exist between this breadboard hole and an Arduino pin
-                        const mainAreaToArduino = edges.find(edge => 
-                          (edge.source === breadboardNode.id && 
-                           edge.target === arduinoNode.id &&
-                           edge.sourceHandle === breadboardHandle) ||
-                          (edge.source === arduinoNode.id && 
-                           edge.target === breadboardNode.id &&
-                           edge.targetHandle === breadboardHandle)
-                        );
-                        
-                        if (mainAreaToArduino) {
-                          const arduinoHandle = mainAreaToArduino.source === arduinoNode.id ? 
-                            mainAreaToArduino.sourceHandle : 
-                            mainAreaToArduino.targetHandle;
+                        // Extract column from breadboard handle
+                        const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
+                        if (colMatch) {
+                          const columnIndex = parseInt(colMatch[1]);
+                          console.log(`Resistor connected to breadboard column ${columnIndex}`);
                           
-                          if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
-                            pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
-                            console.log("Setting pin from resistor-breadboard-arduino connection:", pinNumber);
-                          }
-                        } else {
-                          // If not connected directly, check if this hole is in the same row as another component
-                          // Extract row and column from the breadboard handle
-                          const rowColMatch = breadboardHandle.match(/main-hole-(\d+)-(\d+)/);
-                          if (rowColMatch) {
-                            const row = parseInt(rowColMatch[1]);
-                            const col = parseInt(rowColMatch[2]);
-                            
-                            console.log(`Resistor connected to breadboard row ${row}, col ${col}`);
-                            
-                            // Find other connections in the same row
-                            const sameRowConnections = edges.filter(edge => {
+                          // Check if this column is connected to an Arduino pin
+                          if (breadboardColumnConnections[columnIndex]) {
+                            pinNumber = breadboardColumnConnections[columnIndex].pin;
+                            console.log(`Using pin ${pinNumber} from column ${columnIndex} mapping`);
+                          } else {
+                            // Follow connections through the main area to find Arduino pin
+                            // For any hole in the same column
+                            const sameColumnToArduino = edges.find(edge => {
+                              // Only consider breadboard-arduino connections
+                              if (
+                                !((edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+                                 (edge.source === arduinoNode.id && edge.target === breadboardNode.id))
+                              ) {
+                                return false;
+                              }
+                              
+                              // Check if the breadboard handle is in the same column
                               const handleToCheck = edge.source === breadboardNode.id ? 
                                 edge.sourceHandle : edge.targetHandle;
                               
-                              return handleToCheck && handleToCheck.includes(`main-hole-${row}-`);
+                              if (!handleToCheck || !handleToCheck.includes('main-hole')) {
+                                return false;
+                              }
+                              
+                              const sameColMatch = handleToCheck.match(/main-hole-\d+-(\d+)/);
+                              return sameColMatch && parseInt(sameColMatch[1]) === columnIndex;
                             });
                             
-                            console.log("Same row connections:", sameRowConnections);
-                            
-                            // Check if any of these connections lead to Arduino
-                            for (const rowConn of sameRowConnections) {
-                              const otherNodeId = rowConn.source === breadboardNode.id ? 
-                                rowConn.target : rowConn.source;
+                            if (sameColumnToArduino) {
+                              const arduinoHandle = sameColumnToArduino.source === arduinoNode.id ? 
+                                sameColumnToArduino.sourceHandle : sameColumnToArduino.targetHandle;
                               
-                              if (otherNodeId === arduinoNode.id) {
-                                const arduinoHandle = rowConn.source === arduinoNode.id ? 
-                                  rowConn.sourceHandle : rowConn.targetHandle;
+                              if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                                pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                                console.log(`Setting pin ${pinNumber} from column ${columnIndex} via Arduino connection`);
+                              }
+                            } else {
+                              // If no connection in the column, fall back to the original row-based logic
+                              // Extract row and column from the breadboard handle
+                              const rowColMatch = breadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                              if (rowColMatch) {
+                                const row = parseInt(rowColMatch[1]);
                                 
-                                if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
-                                  pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
-                                  console.log("Setting pin from breadboard row-arduino connection:", pinNumber);
-                                  break;
+                                console.log(`Resistor connected to breadboard row ${row}, col ${columnIndex}`);
+                                
+                                // Find other connections in the same row
+                                const sameRowConnections = edges.filter(edge => {
+                                  const handleToCheck = edge.source === breadboardNode.id ? 
+                                    edge.sourceHandle : edge.targetHandle;
+                                  
+                                  return handleToCheck && handleToCheck.includes(`main-hole-${row}-`);
+                                });
+                                
+                                console.log("Same row connections:", sameRowConnections);
+                                
+                                // Check if any of these connections lead to Arduino
+                                for (const rowConn of sameRowConnections) {
+                                  const otherNodeId = rowConn.source === breadboardNode.id ? 
+                                    rowConn.target : rowConn.source;
+                                  
+                                  if (otherNodeId === arduinoNode.id) {
+                                    const arduinoHandle = rowConn.source === arduinoNode.id ? 
+                                      rowConn.sourceHandle : rowConn.targetHandle;
+                                    
+                                    if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                                      pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                                      console.log("Setting pin from breadboard row-arduino connection:", pinNumber);
+                                      break;
+                                    }
+                                  }
                                 }
                               }
                             }
@@ -950,6 +1060,46 @@ export default function App() {
                     
                     if (railConnectedToGND) {
                       isCathodeConnectedToGND = true;
+                    }
+                  } else if (breadboardHandle?.includes('main-hole')) {
+                    // Check if this is in a column connected to GND
+                    const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
+                    if (colMatch) {
+                      const columnIndex = parseInt(colMatch[1]);
+                      console.log(`Cathode connected to breadboard column ${columnIndex}`);
+                      
+                      // Check if any hole in this column is connected to GND
+                      const columnGNDConnection = edges.find(edge => {
+                        // Only consider breadboard-arduino connections
+                        if (
+                          !((edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
+                           (edge.source === arduinoNode.id && edge.target === breadboardNode.id))
+                        ) {
+                          return false;
+                        }
+                        
+                        // Check if the breadboard handle is in the same column
+                        const handleToCheck = edge.source === breadboardNode.id ? 
+                          edge.sourceHandle : edge.targetHandle;
+                        
+                        if (!handleToCheck || !handleToCheck.includes('main-hole')) {
+                          return false;
+                        }
+                        
+                        const sameColMatch = handleToCheck.match(/main-hole-\d+-(\d+)/);
+                        const sameCol = sameColMatch && parseInt(sameColMatch[1]) === columnIndex;
+                        
+                        // Check if Arduino end is connected to GND
+                        const arduinoHandle = edge.source === arduinoNode.id ? 
+                          edge.sourceHandle : edge.targetHandle;
+                        
+                        return sameCol && arduinoHandle && arduinoHandle.includes('GND');
+                      });
+                      
+                      if (columnGNDConnection) {
+                        console.log(`Column ${columnIndex} is connected to GND - cathode connection valid`);
+                        isCathodeConnectedToGND = true;
+                      }
                     }
                   }
                 }
