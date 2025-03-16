@@ -1,0 +1,5 @@
+[33mcommit 44ec83318096c8524baa6c8674c27e2350f8a58b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbreadboard-validations[m[33m)[m
+Author: Ankush703-web <naikankush067@gmail.com>
+Date:   Sat Mar 15 14:43:07 2025 +0530
+
+    pin detection from middle holes of breadboard established along the column

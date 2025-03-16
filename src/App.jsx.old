@@ -1004,6 +1004,10 @@ export default function App() {
                 }
               }
 
+              // Store the pin number determined by anode connections 
+              // before checking ground connections
+              const anodeDeterminedPinNumber = pinNumber;
+              
               // Check if cathode is connected to GND
               let isCathodeConnectedToGND = Boolean(
                 ledConnections.find(edge => 
@@ -1020,21 +1024,9 @@ export default function App() {
                 )
               );
               
-              console.log(`LED ${node.id} detailed connection info:`, {
-                ledConnections,
-                breadboardNode: Boolean(breadboardNode),
-                breadboardRailConnections,
-                resistors: Boolean(resistors.length),
-                connectedResistor: Boolean(connectedResistor),
-                pinNumberBeforeGND: pinNumber
-              });
-              
-              // Store the pin number determined before checking GND connections
-              // This prevents breadboard GND connections from affecting pin assignments
-              const pinNumberBeforeGNDCheck = pinNumber;
-              
               // Cathode could also be connected to a blue rail (GND)
               if (!isCathodeConnectedToGND && breadboardNode) {
+                // Check for cathode connection to breadboard
                 const cathodeToBreadboard = ledConnections.find(edge => 
                   (edge.source === node.id && 
                    edge.target === breadboardNode.id && 
@@ -1056,240 +1048,43 @@ export default function App() {
                       (breadboardHandle.includes('top') && breadboardRailConnections['top-blue'] === 'GND') ||
                       (breadboardHandle.includes('bottom') && breadboardRailConnections['bottom-blue'] === 'GND');
                     
-                    console.log(`LED ${node.id} cathode-breadboard connection:`, {
-                      breadboardHandle,
-                      railConnectedToGND,
-                      breadboardRailConnections
-                    });
-                    
                     if (railConnectedToGND) {
                       isCathodeConnectedToGND = true;
-                      // GND connections NEVER affect pin number
-                    }
-                  } else if (breadboardHandle?.includes('main-hole')) {
-                    // Check if this is in a column connected to GND
-                    const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
-                    if (colMatch) {
-                      const columnIndex = parseInt(colMatch[1]);
-                      console.log(`Cathode connected to breadboard column ${columnIndex}`);
-                      
-                      // Check if any hole in this column is connected to GND
-                      const columnGNDConnection = edges.find(edge => {
-                        // Only consider breadboard-arduino connections
-                        if (
-                          !((edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
-                           (edge.source === arduinoNode.id && edge.target === breadboardNode.id))
-                        ) {
-                          return false;
-                        }
-                        
-                        // Check if the breadboard handle is in the same column
-                        const handleToCheck = edge.source === breadboardNode.id ? 
-                          edge.sourceHandle : edge.targetHandle;
-                        
-                        if (!handleToCheck || !handleToCheck.includes('main-hole')) {
-                          return false;
-                        }
-                        
-                        const sameColMatch = handleToCheck.match(/main-hole-\d+-(\d+)/);
-                        const sameCol = sameColMatch && parseInt(sameColMatch[1]) === columnIndex;
-                        
-                        // Check if Arduino end is connected to GND
-                        const arduinoHandle = edge.source === arduinoNode.id ? 
-                          edge.sourceHandle : edge.targetHandle;
-                        
-                        return sameCol && arduinoHandle && arduinoHandle.includes('GND');
-                      });
-                      
-                      if (columnGNDConnection) {
-                        console.log(`Column ${columnIndex} is connected to GND - cathode connection valid`);
-                        isCathodeConnectedToGND = true;
-                        // Column GND connections NEVER affect pin number
-                      }
                     }
                   }
-                }
-              }
-
-              // CRITICAL: ALWAYS restore the pin number from before GND checks
-              // GND connections ONLY determine if LED is connected, NEVER the pin number
-              if (pinNumberBeforeGNDCheck !== undefined) {
-                pinNumber = pinNumberBeforeGNDCheck;
-                console.log(`LED ${node.id} - Pin number ${pinNumber} preserved (GND has no effect on pin assignment)`);
-              }
-
-              // For the special case of LED + resistor + breadboard top-red rail connected to pin 12
-              if (connectedResistor && breadboardRailConnections['top-red'] === 12 && isCathodeConnectedToGND && pinNumber === undefined) {
-                // Check if the resistor is connected to the red rail
-                const resistorConnections = edges.filter(edge => 
-                  edge.source === connectedResistor.id || edge.target === connectedResistor.id
-                );
-                
-                const resistorToBreadboard = resistorConnections.find(edge => 
-                  (edge.source === connectedResistor.id && edge.target === breadboardNode?.id) ||
-                  (edge.source === breadboardNode?.id && edge.target === connectedResistor.id)
-                );
-                
-                if (resistorToBreadboard) {
-                  const breadboardHandle = resistorToBreadboard.source === breadboardNode.id ? 
-                    resistorToBreadboard.sourceHandle : 
-                    resistorToBreadboard.targetHandle;
-                    
-                  console.log(`LED ${node.id} resistor-breadboard connection:`, {
-                    resistorId: connectedResistor.id,
-                    breadboardHandle
-                  });
                   
-                  // If resistor is connected to the red rail, use the red rail's pin number
-                  if (breadboardHandle?.includes('rail') && breadboardHandle.includes('red')) {
-                    if (breadboardHandle.includes('top')) {
-                      pinNumber = breadboardRailConnections['top-red'];  // Use the proper pin number from the rail
-                      console.log(`LED ${node.id} using top-red rail pin ${pinNumber}`);
-                    } else if (breadboardHandle.includes('bottom')) {
-                      pinNumber = breadboardRailConnections['bottom-red'];  // Use the proper pin number from the rail
-                      console.log(`LED ${node.id} using bottom-red rail pin ${pinNumber}`);
-                    }
-                  }
+                  // Additional checks for GND connections through columns
+                  // ... existing code for column connections ...
                 }
               }
-
-              console.log(`LED ${node.id} connection path:`, connectionPath);
               
-              // Failsafe for missing pin number when top-red rail is used
-              if (pinNumber === undefined && breadboardRailConnections['top-red'] !== null && 
-                  connectedResistor && isCathodeConnectedToGND) {
-                
-                console.log(`LED ${node.id} - Applying pin detection failsafe`);
-                
-                // Check if the resistor is connected to the red rail on breadboard
-                const resistorConnections = edges.filter(edge => 
-                  edge.source === connectedResistor.id || edge.target === connectedResistor.id
-                );
-                
-                const resistorToBreadboard = resistorConnections.find(edge => 
-                  (edge.source === connectedResistor.id && edge.target === breadboardNode?.id) ||
-                  (edge.source === breadboardNode?.id && edge.target === connectedResistor.id)
-                );
-                
-                if (resistorToBreadboard) {
-                  const breadboardHandle = resistorToBreadboard.source === breadboardNode.id ? 
-                    resistorToBreadboard.sourceHandle : 
-                    resistorToBreadboard.targetHandle;
-                  
-                  console.log(`LED ${node.id} - Failsafe checking resistor-breadboard connection:`, {
-                    breadboardHandle,
-                    railConnections: breadboardRailConnections
-                  });
-                  
-                  // Try to determine if this is a rail or matches a rail's pin
-                  if (breadboardHandle && breadboardHandle.includes('rail')) {
-                    if (breadboardHandle.includes('top') && breadboardHandle.includes('red')) {
-                      pinNumber = breadboardRailConnections['top-red'];
-                      console.log(`LED ${node.id} - Failsafe set pin to ${pinNumber} from top-red rail`);
-                    } else if (breadboardHandle.includes('bottom') && breadboardHandle.includes('red')) {
-                      pinNumber = breadboardRailConnections['bottom-red'];
-                      console.log(`LED ${node.id} - Failsafe set pin to ${pinNumber} from bottom-red rail`);
-                    }
-                  } else if (breadboardHandle && breadboardHandle.includes('main-hole')) {
-                    // Check if this is connected to a main breadboard column that has a pin mapping
-                    const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
-                    if (colMatch) {
-                      const columnIndex = parseInt(colMatch[1]);
-                      // Check if we have a column-to-pin mapping for this column
-                      const columnMappings = breadboardColumnConnections || {};
-                      if (columnMappings[columnIndex]) {
-                        pinNumber = columnMappings[columnIndex].pin;
-                        console.log(`LED ${node.id} - Failsafe set pin to ${pinNumber} from column ${columnIndex} mapping`);
-                      } else {
-                        console.log(`LED ${node.id} - Column ${columnIndex} has no pin mapping`);
-                      }
-                    }
-                  } else {
-                    // As a last resort, use the top-red rail pin if available
-                    if (breadboardRailConnections['top-red'] !== null) {
-                      pinNumber = breadboardRailConnections['top-red'];
-                      console.log(`LED ${node.id} - Last resort failsafe using top-red rail pin ${pinNumber}`);
-                    }
-                  }
-                } else {
-                  // As a last resort, use the top-red rail pin if available
-                  if (breadboardRailConnections['top-red'] !== null) {
-                    pinNumber = breadboardRailConnections['top-red'];
-                    console.log(`LED ${node.id} - Last resort failsafe using top-red rail pin ${pinNumber}`);
-                  }
-                }
+              // CRITICAL: Restore the pin number determined by anode connections
+              // GND connections should only affect if LED is connected, NOT the pin number
+              if (anodeDeterminedPinNumber !== undefined) {
+                console.log(`LED ${node.id} - Restoring anode-determined pin ${anodeDeterminedPinNumber} (ignoring GND effects)`);
+                pinNumber = anodeDeterminedPinNumber;
               }
-
-              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
-
-              // Check LED's previous connection state
+              
+              // Check if this LED was previously connected but now disconnected
               const wasConnected = node.data.component.props.isConnected;
-              const nowConnected = isProperlyConnected;
               const previousPin = node.data.component.props.pin;
-
-              // FAILSAFE: If we have a resistor and cathode to GND but no pin, try to use the rail pin
-              if (Boolean(connectedResistor) && isCathodeConnectedToGND && (pinNumber === undefined || isNaN(pinNumber))) {
-                // Check if the resistor is connected to a breadboard column with pin mapping
-                if (connectedResistor && breadboardNode) {
-                  // Get resistor connections
-                  const resistorConnections = edges.filter(edge => 
-                    edge.source === connectedResistor.id || edge.target === connectedResistor.id
-                  );
-                  
-                  // Find resistor-to-breadboard connection
-                  const resistorToBreadboard = resistorConnections.find(edge => 
-                    (edge.source === connectedResistor.id && edge.target === breadboardNode.id) ||
-                    (edge.source === breadboardNode.id && edge.target === connectedResistor.id)
-                  );
-                  
-                  if (resistorToBreadboard) {
-                    const breadboardHandle = resistorToBreadboard.source === breadboardNode.id ? 
-                      resistorToBreadboard.sourceHandle : 
-                      resistorToBreadboard.targetHandle;
-                    
-                    console.log(`LED ${node.id} - Final failsafe checking resistor-breadboard connection:`, {
-                      breadboardHandle
-                    });
-                    
-                    // Check if resistor is connected to a main column with pin mapping
-                    if (breadboardHandle && breadboardHandle.includes('main-hole')) {
-                      const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
-                      if (colMatch) {
-                        const columnIndex = parseInt(colMatch[1]);
-                        const columnMappings = breadboardColumnConnections || {};
-                        
-                        if (columnMappings[columnIndex]) {
-                          pinNumber = columnMappings[columnIndex].pin;
-                          console.log(`LED ${node.id} - Final failsafe using column ${columnIndex} mapped to pin ${pinNumber}`);
-                          
-                          if (!isNaN(pinNumber)) {
-                            console.log(`LED ${node.id} FAILSAFE: Connection fixed with column mapping!`);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                
-                // If we still don't have a pin, use top-red rail as last resort
-                if ((pinNumber === undefined || isNaN(pinNumber)) && 
-                    breadboardRailConnections && breadboardRailConnections['top-red'] !== null) {
-                  // Only assign a new pin if we don't already have a valid pin from before
-                  if (previousPin === undefined || isNaN(previousPin)) {
-                    pinNumber = breadboardRailConnections['top-red']; 
-                    console.log(`LED ${node.id} FAILSAFE: Setting pin to ${pinNumber} from top-red rail`);
-                    // Update the isProperlyConnected value with our new pin
-                    if (!isNaN(pinNumber)) {
-                      console.log(`LED ${node.id} FAILSAFE: Connection fixed!`);
-                    }
-                  } else {
-                    // If we already had a valid pin, keep it instead of changing to the rail's pin
-                    console.log(`LED ${node.id} FAILSAFE: Preserving existing pin ${previousPin} instead of changing`);
-                    pinNumber = previousPin;
-                  }
+              const isProperlyConnected = Boolean(connectedResistor) && isCathodeConnectedToGND && !isNaN(pinNumber);
+              
+              // Don't change pin number when GND is connected/disconnected
+              // Only change the isConnected status
+              if (wasConnected && !isProperlyConnected && previousPin !== undefined) {
+                if (connectedResistor) {
+                  // If we have a resistor but lost GND connection, preserve the pin number
+                  // but mark the LED as disconnected
+                  console.log(`LED ${node.id} - GND disconnected but preserving pin ${previousPin}`);
+                  pinNumber = previousPin;
+                } else {
+                  // Only if we lost the resistor connection, clear the pin assignment
+                  console.log(`LED ${node.id} - Resistor disconnected - clearing pin assignment`);
+                  pinNumber = undefined;
                 }
               }
-
+              
               // Debug logs
               console.log(`LED ${node.id} connection check:`, {
                 hasConnectedResistor: Boolean(connectedResistor),
@@ -1300,19 +1095,16 @@ export default function App() {
               });
 
               // Check if this LED was previously connected but now disconnected
+              const wasConnected = node.data.component.props.isConnected;
+              const nowConnected = isProperlyConnected;
+              const previousPin = node.data.component.props.pin;
+              
               if (wasConnected && !nowConnected) {
-                if (!connectedResistor) {
-                  // Only clear pin if the resistor was disconnected (not just GND)
-                  console.log(`LED ${node.id} resistor disconnected - clearing pin assignment`);
-                  pinNumber = undefined;
-                } else if (isCathodeConnectedToGND === false && previousPin !== undefined) {
-                  // If just the GND was disconnected but we still have a resistor, keep the pin
-                  console.log(`LED ${node.id} GND disconnected but resistor present - keeping pin ${previousPin}`);
-                  pinNumber = previousPin;
-                  // We mark it as disconnected via isConnected, but preserve the pin number
-                }
+                console.log(`LED ${node.id} was disconnected - clearing pin assignment`);
+                // Clear the pin assignment when LED is disconnected
+                pinNumber = undefined;
               }
-
+              
               // If pin has changed, log the change
               if (previousPin !== pinNumber) {
                 console.log(`LED ${node.id} pin changed from ${previousPin} to ${pinNumber}`);
@@ -1353,8 +1145,7 @@ export default function App() {
               // This prevents other LEDs from affecting this one
               const isolatedHardwareRef = {
                 current: isReallyConnected && pinNumber !== undefined ? {
-                  // Use the actual real-time pin state from hardware, not a shared reference
-                  [pinNumber]: realPinStatesRef.current ? realPinStatesRef.current[pinNumber] : false
+                  [pinNumber]: realPinStatesRef.current[pinNumber]
                 } : {}
               };
               
@@ -1365,7 +1156,7 @@ export default function App() {
                 shouldBlink: isReallyConnected && actualPinState,
                 pinState: isolatedPinState, // Use the isolated pin state
                 pin: isReallyConnected ? pinNumber : undefined,
-                pinStateVersion: pinStateVersion, // Include the version to force updates
+                pinStateVersion: pinStateVersion,
                 forceUpdate: Date.now(),
                 // Add more uniqueness to key to force clean remounts
                 key: `led-${node.id}-${Date.now()}-${pinStateVersion}-${isReallyConnected ? 'connected' : 'disconnected'}-${pinNumber || 'nopin'}-${actualPinState ? 'high' : 'low'}`,
@@ -1909,19 +1700,7 @@ export default function App() {
         }
         
         // CRITICAL: Update the real-time ref with hardware pin states FIRST
-        // Make a deep copy to ensure we're not sharing references
-        realPinStatesRef.current = JSON.parse(JSON.stringify(newPinStates));
-        
-        // Log pin state changes for debugging
-        const changedPins = Object.keys(newPinStates).filter(
-          pin => pinState[pin] !== newPinStates[pin]
-        );
-        
-        if (changedPins.length > 0) {
-          console.log("Pin state changes detected:", changedPins.map(
-            pin => `Pin ${pin}: ${pinState[pin]} -> ${newPinStates[pin]}`
-          ));
-        }
+        realPinStatesRef.current = {...newPinStates};
         
         // CRITICAL: Force React state update with NO COMPARISON
         setPinState(() => ({...newPinStates}));

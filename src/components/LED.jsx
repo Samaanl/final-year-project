@@ -134,7 +134,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
         stopBlinking();
       }
     }
-  }, [pin, isConnected, realPinStatesRef?.current]);
+  }, [pin, isConnected, pinStateVersion]);
   
   // Force cleanup when component unmounts or connection changes
   useEffect(() => {
@@ -208,10 +208,20 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     const activeColor = color;
     const dimColor = color === 'yellow' ? '#ffeb3b' : color;
     
+    // Create a pin-specific blinking interval
+    console.log(`LED ${id} starting blink for pin ${pin} only`);
+    
+    // Use a consistent interval tied to the pin state
     blinkIntervalRef.current = setInterval(() => {
-      setColor(prev => prev === activeColor ? dimColor : activeColor);
+      // Only blink if we're still connected and the pin is HIGH
+      if (isConnected && pin !== undefined && realPinStatesRef?.current?.[pin]) {
+        setColor(prev => prev === activeColor ? dimColor : activeColor);
+      } else {
+        // Stop blinking if pin state changes
+        stopBlinking();
+      }
     }, 200);
-  }, [color]);
+  }, [color, isConnected, pin, realPinStatesRef, id]);
   
   // Function to stop blinking
   const stopBlinking = () => {
@@ -264,6 +274,29 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     
   // Ensure we never use pinState from props, only use the hardware state reference for THIS pin
   const hardwarePinState = thisPinHardwareState;
+  
+  // Add an effect to check pin state changes independently on each render
+  useEffect(() => {
+    // Skip if not connected or no pin
+    if (!isConnected || pin === undefined) return;
+    
+    console.log(`LED ${id} pin ${pin} hardware state is now: ${hardwarePinState}`);
+    
+    // Start or stop blinking based on current hardware state
+    if (hardwarePinState && !isBlinking) {
+      startBlinking();
+    } else if (!hardwarePinState && isBlinking) {
+      stopBlinking();
+    }
+    
+    // Cleanup on unmount or pin change
+    return () => {
+      if (isBlinking) {
+        console.log(`LED ${id} cleaning up blinking on pin change/unmount`);
+        stopBlinking();
+      }
+    };
+  }, [hardwarePinState, isConnected, pin, id, isBlinking, startBlinking]);
   
   // Memoize style calculations with strict pin isolation
   const style = useMemo(() => ({
