@@ -427,6 +427,15 @@ export default function App() {
       
       if (!breadboardNode || !arduinoNode) return;
       
+      // Add diagnostics for all components and their connections
+      console.log("DIAGNOSTICS: Component Connection Check", {
+        nodes: nodes.map(n => ({
+          id: n.id, 
+          type: n.data.component.type.name
+        })),
+        breadboardColumnConnections: {...breadboardColumnConnections}
+      });
+      
       // Find all direct connections between Arduino and breadboard
       const breadboardToArduinoEdges = edges.filter(edge => 
         (edge.source === breadboardNode.id && edge.target === arduinoNode.id) ||
@@ -457,6 +466,116 @@ export default function App() {
                   pin: pinNumber,
                   type: arduinoHandle.includes('digital') ? 'digital' : 'analog'
                 };
+              }
+            }
+          }
+        }
+      });
+      
+      // Find connections through resistors
+      const resistors = nodes.filter(n => n.data.component.type.name === "Resistor");
+      
+      // Log all resistors found
+      console.log(`RESISTOR-PIN-TRACE: Found ${resistors.length} resistors`, 
+        resistors.map(r => r.id));
+      
+      // For each resistor, check if it connects Arduino to breadboard
+      resistors.forEach(resistor => {
+        // Get all connections to this resistor
+        const resistorConnections = edges.filter(edge => 
+          edge.source === resistor.id || edge.target === resistor.id
+        );
+        
+        console.log(`RESISTOR-PIN-TRACE: Resistor ${resistor.id} has ${resistorConnections.length} connections`);
+        
+        // Find Arduino connection
+        const resistorToArduino = resistorConnections.find(edge => 
+          (edge.source === resistor.id && edge.target === arduinoNode.id) ||
+          (edge.source === arduinoNode.id && edge.target === resistor.id)
+        );
+        
+        // Find breadboard connection
+        const resistorToBreadboard = resistorConnections.find(edge => 
+          (edge.source === resistor.id && edge.target === breadboardNode.id) ||
+          (edge.source === breadboardNode.id && edge.target === resistor.id)
+        );
+        
+        // Log connection status
+        console.log(`RESISTOR-PIN-TRACE: Connection status for ${resistor.id}:`, {
+          hasArduinoConnection: Boolean(resistorToArduino),
+          hasBreadboardConnection: Boolean(resistorToBreadboard)
+        });
+        
+        // If resistor connects both Arduino and breadboard
+        if (resistorToArduino && resistorToBreadboard) {
+          console.log(`CRITICAL PATH: Found resistor ${resistor.id} connecting Arduino to breadboard`);
+          
+          // Get Arduino pin number
+          const arduinoHandle = resistorToArduino.source === arduinoNode.id ? 
+            resistorToArduino.sourceHandle : 
+            resistorToArduino.targetHandle;
+          
+          // Get breadboard column
+          const breadboardHandle = resistorToBreadboard.source === breadboardNode.id ? 
+            resistorToBreadboard.sourceHandle : 
+            resistorToBreadboard.targetHandle;
+          
+          console.log(`CRITICAL PATH: Resistor-Arduino-Breadboard connection details:`, {
+            arduinoHandle,
+            breadboardHandle
+          });
+          
+          // If Arduino handle is a digital/analog pin and not GND
+          if ((arduinoHandle.includes('digital') || arduinoHandle.includes('analog')) && 
+              !arduinoHandle.includes('GND')) {
+            
+            const pinMatch = arduinoHandle.match(/\d+/);
+            const pinNumber = pinMatch ? parseInt(pinMatch[0]) : null;
+            
+            console.log(`CRITICAL PATH: Arduino pin detected: ${pinNumber}`);
+            
+            // If breadboard handle is a main hole (VERTICAL connection)
+            if (breadboardHandle && breadboardHandle.includes('main-hole') && pinNumber !== null) {
+              // Extract column number
+              const colMatch = breadboardHandle.match(/main-hole-\d+-(\d+)/);
+              if (colMatch) {
+                const columnIndex = parseInt(colMatch[1]);
+                console.log(`CRITICAL PATH: Mapping breadboard column ${columnIndex} to Arduino pin ${pinNumber} via resistor`);
+                
+                newColumnConnections[columnIndex] = {
+                  pin: pinNumber,
+                  type: arduinoHandle.includes('digital') ? 'digital' : 'analog'
+                };
+                
+                // CORRECTED BEHAVIOR: Breadboard main holes are connected VERTICALLY in columns
+                // Extract the row information too
+                const rowColMatch = breadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                if (rowColMatch) {
+                  const rowIndex = parseInt(rowColMatch[1]);
+                  const colIndex = parseInt(rowColMatch[2]);
+                  console.log(`CRITICAL PATH: Resistor connects to breadboard at row ${rowIndex}, column ${colIndex}`);
+                  
+                  // CORRECTED BEHAVIOR: Do NOT map the entire row, only map the exact column
+                  // Main breadboard holes are connected VERTICALLY in columns, not horizontally in rows
+                  console.log(`CRITICAL PATH: Only mapping column ${colIndex} to pin ${pinNumber} - breadboard main holes are only connected vertically`);
+                }
+              }
+            }
+            // If breadboard handle is a rail (HORIZONTAL connection)
+            else if (breadboardHandle && breadboardHandle.includes('rail') && pinNumber !== null) {
+              // Rails are connected horizontally, so handle accordingly
+              if (breadboardHandle.includes('top-red')) {
+                console.log(`CRITICAL PATH: Mapping top-red rail to Arduino pin ${pinNumber} via resistor`);
+                breadboardRailConnections['top-red'] = pinNumber;
+              } else if (breadboardHandle.includes('bottom-red')) {
+                console.log(`CRITICAL PATH: Mapping bottom-red rail to Arduino pin ${pinNumber} via resistor`);
+                breadboardRailConnections['bottom-red'] = pinNumber;
+              } else if (breadboardHandle.includes('top-blue')) {
+                console.log(`CRITICAL PATH: Mapping top-blue rail to GND via resistor`);
+                breadboardRailConnections['top-blue'] = 'GND';
+              } else if (breadboardHandle.includes('bottom-blue')) {
+                console.log(`CRITICAL PATH: Mapping bottom-blue rail to GND via resistor`);
+                breadboardRailConnections['bottom-blue'] = 'GND';
               }
             }
           }
@@ -720,7 +839,8 @@ export default function App() {
 
               // Find resistor connection
               const connectedResistor = resistors.find(resistor => {
-                return ledConnections.some(edge => 
+                // Check for direct LED-resistor connections
+                const directConnection = ledConnections.some(edge => 
                   (edge.source === node.id && edge.target === resistor.id && 
                    edge.sourceHandle === "anode-source" && 
                    (edge.targetHandle === "left-target" || edge.targetHandle === "right-target")) ||
@@ -728,6 +848,130 @@ export default function App() {
                    (edge.sourceHandle === "left-source" || edge.sourceHandle === "right-source") && 
                    edge.targetHandle === "anode-target")
                 );
+
+                // If direct connection exists, return immediately
+                if (directConnection) {
+                  console.log(`LED ${node.id} has direct connection to resistor ${resistor.id}`);
+                  return true;
+                }
+
+                // Check for connections through the same breadboard hole
+                if (breadboardNode) {
+                  // Find LED anode connection to breadboard
+                  const ledAnodeToBreadboard = edges.find(edge => 
+                    (edge.source === node.id && edge.target === breadboardNode.id && 
+                     edge.sourceHandle === "anode-source") ||
+                    (edge.source === breadboardNode.id && edge.target === node.id &&
+                     edge.targetHandle === "anode-target")
+                  );
+
+                  // Find resistor connections to breadboard
+                  const resistorToBreadboard = edges.filter(edge => 
+                    (edge.source === resistor.id && edge.target === breadboardNode.id) ||
+                    (edge.source === breadboardNode.id && edge.target === resistor.id)
+                  );
+                  
+                  // Find resistor connections to Arduino (important for checking full path)
+                  const resistorToArduino = edges.find(edge => 
+                    (edge.source === resistor.id && edge.target === arduinoNode?.id) ||
+                    (edge.source === arduinoNode?.id && edge.target === resistor.id)
+                  );
+
+                  // If both LED anode and resistor are connected to breadboard
+                  if (ledAnodeToBreadboard && resistorToBreadboard.length > 0) {
+                    // Get LED breadboard connection handle
+                    const ledBreadboardHandle = ledAnodeToBreadboard.source === breadboardNode.id ? 
+                      ledAnodeToBreadboard.sourceHandle : 
+                      ledAnodeToBreadboard.targetHandle;
+                    
+                    console.log(`LED ${node.id} breadboard connection handle: ${ledBreadboardHandle}`);
+                    
+                    // FIRST: Check for connections to rails (which are connected horizontally)
+                    if (ledBreadboardHandle && ledBreadboardHandle.includes('rail')) {
+                      // Rails are connected horizontally, so we need to check if resistor is on the same rail
+                      for (const resistorConn of resistorToBreadboard) {
+                        const resistorBreadboardHandle = resistorConn.source === breadboardNode.id ? 
+                          resistorConn.sourceHandle : 
+                          resistorConn.targetHandle;
+                        
+                        // If both are connected to the same rail type
+                        if (resistorBreadboardHandle && resistorBreadboardHandle.includes('rail')) {
+                          // Check rail section matches (top-red, top-blue, bottom-red, bottom-blue)
+                          if ((ledBreadboardHandle.includes('top-red') && resistorBreadboardHandle.includes('top-red')) ||
+                              (ledBreadboardHandle.includes('top-blue') && resistorBreadboardHandle.includes('top-blue')) ||
+                              (ledBreadboardHandle.includes('bottom-red') && resistorBreadboardHandle.includes('bottom-red')) ||
+                              (ledBreadboardHandle.includes('bottom-blue') && resistorBreadboardHandle.includes('bottom-blue'))) {
+                            console.log(`LED ${node.id} and resistor ${resistor.id} connected through same breadboard rail`);
+                            return true;
+                          }
+                        }
+                      }
+                    }
+                    // SECOND: Check for connections in the main area (middle holes - connected VERTICALLY by column)
+                    else if (ledBreadboardHandle && ledBreadboardHandle.includes('main-hole')) {
+                      // Extract column from LED handle
+                      const ledRowColMatch = ledBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                      
+                      if (ledRowColMatch) {
+                        const ledRow = parseInt(ledRowColMatch[1]);
+                        const ledCol = parseInt(ledRowColMatch[2]);
+                        
+                        console.log(`LED anode connected to breadboard at row ${ledRow}, col ${ledCol}`);
+                        
+                        // Check each resistor-breadboard connection
+                        for (const resistorConn of resistorToBreadboard) {
+                          const resistorBreadboardHandle = resistorConn.source === breadboardNode.id ? 
+                            resistorConn.sourceHandle : 
+                            resistorConn.targetHandle;
+                          
+                          // Check if resistor is connected to main hole (not rail)
+                          if (resistorBreadboardHandle && resistorBreadboardHandle.includes('main-hole')) {
+                            const resistorRowColMatch = resistorBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                            
+                            if (resistorRowColMatch) {
+                              const resistorRow = parseInt(resistorRowColMatch[1]);
+                              const resistorCol = parseInt(resistorRowColMatch[2]);
+                              
+                              console.log(`Resistor connected to breadboard at row ${resistorRow}, col ${resistorCol}`);
+                              
+                              // =========== CRITICAL CHECK ============
+                              // Check if the resistor connects to Arduino (needed for the full circuit)
+                              // This is VERY important for the Arduino -> Resistor -> Breadboard -> LED path
+                              if (resistorToArduino) {
+                                console.log(`Resistor ${resistor.id} also connected to Arduino - checking for full path`);
+                                
+                                // Check if Arduino handle is a digital pin
+                                const arduinoHandle = resistorToArduino.source === arduinoNode.id ? 
+                                  resistorToArduino.sourceHandle : 
+                                  resistorToArduino.targetHandle;
+                                
+                                if (arduinoHandle && arduinoHandle.includes('digital')) {
+                                  // This is a valid Arduino -> Resistor -> Breadboard -> LED path
+                                  console.log(`FULL PATH DETECTED: Arduino -> Resistor -> Breadboard -> LED`);
+                                  
+                                  // Check for same COLUMN (vertical) connection or exact same hole
+                                  if (ledCol === resistorCol) {
+                                    console.log(`LED ${node.id} and resistor ${resistor.id} connected through same breadboard COLUMN ${ledCol}`);
+                                    return true;
+                                  }
+                                }
+                              }
+                              
+                              // Check for same COLUMN (vertical) connection - CORRECTED BREADBOARD BEHAVIOR
+                              if (ledCol === resistorCol) {
+                                console.log(`LED ${node.id} and resistor ${resistor.id} connected through same breadboard COLUMN ${ledCol}`);
+                                return true;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                
+                // No connection found
+                return false;
               });
 
               // Find resistor connections for debugging
@@ -989,7 +1233,7 @@ export default function App() {
                                     
                                     if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
                                       pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
-                                      console.log("Setting pin from breadboard row-arduino connection:", pinNumber);
+                                      console.log(`LED ${node.id} - Set pin number to ${pinNumber} from same COLUMN connection - vertical connection`);
                                       break;
                                     }
                                   }
@@ -1111,9 +1355,257 @@ export default function App() {
                 }
               }
 
+              // Additional trace logic for resistor-breadboard-LED connections
+              if (pinNumber === undefined && connectedResistor && breadboardNode) {
+                console.log(`LED ${node.id} - Attempting to trace connection through breadboard rows`);
+                
+                // Get the anode connection to breadboard
+                const anodeToBreadboard = ledConnections.find(edge => 
+                  (edge.source === node.id && 
+                   edge.target === breadboardNode.id && 
+                   edge.sourceHandle === "anode-source") ||
+                  (edge.source === breadboardNode.id && 
+                   edge.target === node.id && 
+                   edge.targetHandle === "anode-target")
+                );
+                
+                if (anodeToBreadboard) {
+                  // Get the breadboard handle for the anode connection
+                  const anodeBreadboardHandle = anodeToBreadboard.source === breadboardNode.id ? 
+                    anodeToBreadboard.sourceHandle : 
+                    anodeToBreadboard.targetHandle;
+                  
+                  console.log(`LED ${node.id} anode connected to breadboard at: ${anodeBreadboardHandle}`);
+
+                  // Get resistor connections
+                  const resistorConnections = edges.filter(edge => 
+                    edge.source === connectedResistor.id || edge.target === connectedResistor.id
+                  );
+                  
+                  // 1. CRITICAL CHECK: First see if the resistor connects to the EXACT SAME breadboard hole
+                  const exactSameHoleConnection = resistorConnections.find(edge => {
+                    if ((edge.source === connectedResistor.id && edge.target === breadboardNode.id) ||
+                        (edge.source === breadboardNode.id && edge.target === connectedResistor.id)) {
+                        
+                      // Get the breadboard handle for the resistor connection
+                      const resistorBreadboardHandle = edge.source === breadboardNode.id ? 
+                        edge.sourceHandle : edge.targetHandle;
+                      
+                      // Compare the exact handles
+                      return resistorBreadboardHandle === anodeBreadboardHandle;
+                    }
+                    return false;
+                  });
+                  
+                  if (exactSameHoleConnection) {
+                    console.log(`LED ${node.id} - Found resistor connection to same exact breadboard hole`);
+                    
+                    // Check if resistor connects to Arduino directly
+                    const resistorToArduino = resistorConnections.find(edge => 
+                      (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                      (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                    );
+                    
+                    if (resistorToArduino) {
+                      console.log(`LED ${node.id} - Found resistor to Arduino connection`);
+                      const arduinoHandle = resistorToArduino.source === arduinoNode.id ? 
+                        resistorToArduino.sourceHandle : resistorToArduino.targetHandle;
+                      
+                      // Only use digital pins, not GND pins
+                      if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                        pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                        console.log(`LED ${node.id} - Set pin number to ${pinNumber} from exact same breadboard hole`);
+                      }
+                    }
+                  }
+                  
+                  // 2. If not exact same hole, check if they are in the same row
+                  if (pinNumber === undefined && anodeBreadboardHandle && anodeBreadboardHandle.includes('main-hole')) {
+                    // Extract row and column from anode handle
+                    const anodeRowColMatch = anodeBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                    
+                    if (anodeRowColMatch) {
+                      const anodeRow = parseInt(anodeRowColMatch[1]);
+                      const anodeCol = parseInt(anodeRowColMatch[2]);
+                      
+                      console.log(`LED anode connected to breadboard row ${anodeRow}, col ${anodeCol}`);
+                      
+                      // Find all resistor connections to breadboard
+                      const resistorToBreadboardConns = resistorConnections.filter(edge => 
+                        (edge.source === connectedResistor.id && edge.target === breadboardNode.id) ||
+                        (edge.source === breadboardNode.id && edge.target === connectedResistor.id)
+                      );
+                      
+                      // Look for connections in the same row
+                      for (const conn of resistorToBreadboardConns) {
+                        const resistorBreadboardHandle = conn.source === breadboardNode.id ? 
+                          conn.sourceHandle : conn.targetHandle;
+                        
+                        if (resistorBreadboardHandle && resistorBreadboardHandle.includes('main-hole')) {
+                          const resistorRowColMatch = resistorBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                          
+                          if (resistorRowColMatch) {
+                            const resistorRow = parseInt(resistorRowColMatch[1]);
+                            const resistorCol = parseInt(resistorRowColMatch[2]);
+                            
+                            console.log(`Resistor connected to breadboard row ${resistorRow}, col ${resistorCol}`);
+                            
+                            // If in the same row (electrically connected)
+                            if (resistorCol === anodeCol) {
+                              console.log(`LED ${node.id} - Found resistor in same COLUMN ${anodeCol} - vertical connection`);
+                              
+                              // Check the resistor-Arduino connection
+                              const resistorToArduino = resistorConnections.find(edge => 
+                                (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                                (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                              );
+                              
+                              if (resistorToArduino) {
+                                console.log(`LED ${node.id} - Found resistor to Arduino connection`);
+                                const arduinoHandle = resistorToArduino.source === arduinoNode.id ? 
+                                  resistorToArduino.sourceHandle : resistorToArduino.targetHandle;
+                                
+                                // Only use digital pins, not GND pins
+                                if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                                  pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                                  console.log(`LED ${node.id} - Set pin number to ${pinNumber} from same COLUMN connection - vertical connection`);
+                                }
+                              }
+                              break;
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
               // CRITICAL: ALWAYS restore the pin number from before GND checks
               // GND connections ONLY determine if LED is connected, NEVER the pin number
-              if (pinNumberBeforeGNDCheck !== undefined) {
+              
+              // Trace through resistor connections when LED and resistor are in same breadboard row
+              if (pinNumber === undefined && connectedResistor && breadboardNode) {
+                console.log(`Attempting to trace connection for LED ${node.id} through resistor ${connectedResistor.id}`);
+                
+                // Find LED anode connection to breadboard
+                const ledAnodeToBreadboard = edges.find(edge => 
+                  (edge.source === node.id && edge.target === breadboardNode.id && 
+                    edge.sourceHandle === "anode-source") ||
+                  (edge.source === breadboardNode.id && edge.target === node.id &&
+                    edge.targetHandle === "anode-target")
+                );
+                
+                if (ledAnodeToBreadboard) {
+                  const ledBreadboardHandle = ledAnodeToBreadboard.source === breadboardNode.id ? 
+                    ledAnodeToBreadboard.sourceHandle : 
+                    ledAnodeToBreadboard.targetHandle;
+                  
+                  console.log(`LED ${node.id} breadboard connection: ${ledBreadboardHandle}`);
+                  
+                  // Check if LED is connected to main hole (not rail)
+                  if (ledBreadboardHandle && ledBreadboardHandle.includes('main-hole')) {
+                    const ledRowColMatch = ledBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                    
+                    if (ledRowColMatch) {
+                      const ledRow = parseInt(ledRowColMatch[1]);
+                      const ledCol = parseInt(ledRowColMatch[2]);
+                      
+                      console.log(`LED anode connected to breadboard row ${ledRow}, col ${ledCol}`);
+                      
+                      // Find resistor connections to breadboard
+                      const resistorConnections = edges.filter(edge => 
+                        edge.source === connectedResistor.id || edge.target === connectedResistor.id
+                      );
+                      
+                      // First find the breadboard connection in the same row
+                      const resistorToBreadboardInSameRow = resistorConnections.find(edge => {
+                        if (!((edge.source === connectedResistor.id && edge.target === breadboardNode.id) ||
+                             (edge.source === breadboardNode.id && edge.target === connectedResistor.id))) {
+                          return false;
+                        }
+                        
+                        const resistorBreadboardHandle = edge.source === breadboardNode.id ? 
+                          edge.sourceHandle : 
+                          edge.targetHandle;
+                          
+                        if (!resistorBreadboardHandle || !resistorBreadboardHandle.includes('main-hole')) {
+                          return false;
+                        }
+                        
+                        const resistorRowColMatch = resistorBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                        return resistorRowColMatch && parseInt(resistorRowColMatch[1]) === ledRow;
+                      });
+                      
+                      if (resistorToBreadboardInSameRow) {
+                        console.log(`Found resistor connection in same row ${ledRow}`);
+                        
+                        // Find if the resistor has a connection to Arduino
+                        const resistorToArduino = resistorConnections.find(edge => 
+                          (edge.source === connectedResistor.id && edge.target === arduinoNode.id) ||
+                          (edge.source === arduinoNode.id && edge.target === connectedResistor.id)
+                        );
+                        
+                        if (resistorToArduino) {
+                          console.log(`Found resistor to Arduino connection`);
+                          const arduinoHandle = resistorToArduino.source === arduinoNode.id ? 
+                            resistorToArduino.sourceHandle : 
+                            resistorToArduino.targetHandle;
+                            
+                          // Only use digital pins, not GND pins
+                          if (arduinoHandle.includes('digital') && !arduinoHandle.includes('GND')) {
+                            pinNumber = parseInt(arduinoHandle.match(/\d+/)?.[0]);
+                            console.log(`LED ${node.id} - Set pin number to ${pinNumber} from resistor to Arduino through breadboard row ${ledRow}`);
+                          }
+                        } else {
+                          // Check the other breadboard connection for the resistor
+                          console.log(`Checking if resistor has another breadboard connection`);
+                          
+                          const otherResistorToBreadboard = resistorConnections.find(edge => {
+                            if (!((edge.source === connectedResistor.id && edge.target === breadboardNode.id) ||
+                                 (edge.source === breadboardNode.id && edge.target === connectedResistor.id))) {
+                              return false;
+                            }
+                            
+                            // Make sure it's not the same connection we just found
+                            return edge.id !== resistorToBreadboardInSameRow.id;
+                          });
+                          
+                          if (otherResistorToBreadboard) {
+                            console.log(`Found another resistor-breadboard connection`);
+                            const otherBreadboardHandle = otherResistorToBreadboard.source === breadboardNode.id ? 
+                              otherResistorToBreadboard.sourceHandle : 
+                              otherResistorToBreadboard.targetHandle;
+                              
+                            // Check if connected to a rail with pin assignment
+                            if (otherBreadboardHandle.includes('rail')) {
+                              if (otherBreadboardHandle.includes('top-red') && breadboardRailConnections['top-red'] !== null) {
+                                pinNumber = breadboardRailConnections['top-red'];
+                                console.log(`Set pin number to ${pinNumber} from resistor connected to top-red rail`);
+                              } else if (otherBreadboardHandle.includes('bottom-red') && breadboardRailConnections['bottom-red'] !== null) {
+                                pinNumber = breadboardRailConnections['bottom-red'];
+                                console.log(`Set pin number to ${pinNumber} from resistor connected to bottom-red rail`);
+                              }
+                            } else if (otherBreadboardHandle.includes('main-hole')) {
+                              // Check if the other hole has a pin mapping
+                              const otherRowColMatch = otherBreadboardHandle.match(/main-hole-(\d+)-(\d+)/);
+                              if (otherRowColMatch) {
+                                const otherCol = parseInt(otherRowColMatch[2]);
+                                if (breadboardColumnConnections[otherCol]) {
+                                  pinNumber = breadboardColumnConnections[otherCol].pin;
+                                  console.log(`Set pin number to ${pinNumber} from resistor connected to column ${otherCol} with pin mapping`);
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              
+              if (pinNumberBeforeGNDCheck !== undefined && pinNumber === undefined) {
                 pinNumber = pinNumberBeforeGNDCheck;
                 console.log(`LED ${node.id} - Pin number ${pinNumber} preserved (GND has no effect on pin assignment)`);
               }
@@ -1277,10 +1769,10 @@ export default function App() {
                   // Only assign a new pin if we don't already have a valid pin from before
                   if (previousPin === undefined || isNaN(previousPin)) {
                     pinNumber = breadboardRailConnections['top-red']; 
-                    console.log(`LED ${node.id} FAILSAFE: Setting pin to ${pinNumber} from top-red rail`);
-                    // Update the isProperlyConnected value with our new pin
-                    if (!isNaN(pinNumber)) {
-                      console.log(`LED ${node.id} FAILSAFE: Connection fixed!`);
+                  console.log(`LED ${node.id} FAILSAFE: Setting pin to ${pinNumber} from top-red rail`);
+                  // Update the isProperlyConnected value with our new pin
+                  if (!isNaN(pinNumber)) {
+                    console.log(`LED ${node.id} FAILSAFE: Connection fixed!`);
                     }
                   } else {
                     // If we already had a valid pin, keep it instead of changing to the rail's pin
@@ -1304,7 +1796,7 @@ export default function App() {
                 if (!connectedResistor) {
                   // Only clear pin if the resistor was disconnected (not just GND)
                   console.log(`LED ${node.id} resistor disconnected - clearing pin assignment`);
-                  pinNumber = undefined;
+                pinNumber = undefined;
                 } else if (isCathodeConnectedToGND === false && previousPin !== undefined) {
                   // If just the GND was disconnected but we still have a resistor, keep the pin
                   console.log(`LED ${node.id} GND disconnected but resistor present - keeping pin ${previousPin}`);
@@ -1312,7 +1804,7 @@ export default function App() {
                   // We mark it as disconnected via isConnected, but preserve the pin number
                 }
               }
-
+              
               // If pin has changed, log the change
               if (previousPin !== pinNumber) {
                 console.log(`LED ${node.id} pin changed from ${previousPin} to ${pinNumber}`);
