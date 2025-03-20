@@ -6,36 +6,19 @@ import "./Tooltip.css";
 
 const ColorPicker = ({ id, color, onChange, onClose, position }) => {
   const pickerRef = useRef(null);
-  const [canClose, setCanClose] = useState(false);
-  const [currentColor, setCurrentColor] = useState(color);
-  
-  // Set up the delayed ability to close
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCanClose(true);
-    }, 500); // Wait 500ms before allowing close
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!canClose) return; // Don't close if we're not ready
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
-        onChange(currentColor); // Apply the current color when closing
         onClose();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [canClose, onClose, onChange, currentColor]);
-
-  const handleColorChange = (e) => {
-    const newColor = e.target.value;
-    setCurrentColor(newColor);
-    onChange(newColor);
-  };
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   return createPortal(
     <div
@@ -44,42 +27,28 @@ const ColorPicker = ({ id, color, onChange, onClose, position }) => {
         position: 'fixed',
         left: position.x,
         top: position.y,
-        zIndex: 9999,
-        backgroundColor: 'white',
-        padding: '10px',
+        zIndex: 99999,
+        backgroundColor: '#2d3748',
+        padding: '12px',
         borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        border: '1px solid #ccc',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        border: '1px solid #4a5568',
+        transform: 'translate(-50%, 10px)'
       }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
     >
       <input
         type="color"
-        value={currentColor}
+        value={color}
+        onChange={(e) => onChange(e.target.value)}
         style={{
-          width: '120px',
-          height: '50px',
+          width: '100px',
+          height: '40px',
           padding: '0',
           border: 'none',
           cursor: 'pointer',
           backgroundColor: 'transparent'
         }}
-        onChange={handleColorChange}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
       />
-      <div style={{ 
-        fontSize: '12px', 
-        color: '#666',
-        textAlign: 'center',
-        userSelect: 'none'
-      }}>
-        Click outside to apply
-      </div>
     </div>,
     document.body
   );
@@ -87,7 +56,7 @@ const ColorPicker = ({ id, color, onChange, onClose, position }) => {
 
 const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false, pin, pinStateVersion, realPinStatesRef }) => {
   const [size] = useState({ width: 48, height: 64 });
-  const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "yellow");
+  const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "green");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 });
   const bulbRef = useRef(null);
@@ -242,22 +211,31 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   };
 
   // Handle right-click on LED body
-  const handleContextMenu = (e) => {
+  const handleContextMenu = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Calculate position for color picker
     const rect = e.currentTarget.getBoundingClientRect();
     setPickerPosition({
-      x: rect.left + window.scrollX,
-      y: rect.bottom + window.scrollY + 10
+      x: rect.left + (rect.width / 2) + window.scrollX,
+      y: rect.bottom + window.scrollY
     });
     setShowColorPicker(true);
+  }, []);
+
+  // Handle left-click to also show color picker
+  const handleClick = (e) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPickerPosition({
+      x: rect.left + (rect.width / 2) + window.scrollX,
+      y: rect.bottom + window.scrollY
+    });
+    setShowColorPicker(prev => !prev);
   };
 
   // Handle color change
   const handleColorChange = (newColor) => {
-    console.log(`LED ${id} color changed to ${newColor}`);
     setColor(newColor);
     localStorage.setItem(`ledColor-${id}`, newColor);
     
@@ -388,17 +366,14 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
         />
 
         <div
-          className="rounded-t-full shadow-md"
+          className="rounded-t-full shadow-md led-bulb"
           style={{
             ...bulbStyle,
             pointerEvents: 'all',
             cursor: 'pointer'
           }}
           onContextMenu={handleContextMenu}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
+          onClick={handleClick}
         />
 
         {showColorPicker && (

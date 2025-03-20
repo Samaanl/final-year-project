@@ -1,5 +1,5 @@
-E:\Ty_Project\final-year-project\src\temp\build\sketch\sketch.ino.cpp.o: \
- E:\Ty_Project\final-year-project\src\temp\build\sketch\sketch.ino.cpp \
+E:\Ty_Project\Project_presentation_rosary_college\final-year-project\src\temp\build\sketch\sketch.ino.cpp.o: \
+ E:\Ty_Project\Project_presentation_rosary_college\final-year-project\src\temp\build\sketch\sketch.ino.cpp \
  C:\Users\ACER\AppData\Local\Arduino15\packages\arduino\hardware\avr\1.8.6\cores\arduino/Arduino.h \
  C:\Users\ACER\AppData\Local\Arduino15\packages\arduino\hardware\avr\1.8.6\cores\arduino/binary.h \
  C:\Users\ACER\AppData\Local\Arduino15\packages\arduino\hardware\avr\1.8.6\cores\arduino/WCharacter.h \
