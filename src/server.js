@@ -142,7 +142,7 @@ app.post("/insert", (req, res) => {
     const placeholders = components.map(() => "(?,?,?,?)").join(", ");
 
     // Create SQL query
-    const insertQuery = `INSERT INTO users (proj, nodeName, x, y) VALUES ${placeholders}`;
+    const insertQuery = `INSERT INTO users (proj, name, x, y) VALUES ${placeholders}`;
 
     // Flatten component data for SQL parameters
     const values = [];
