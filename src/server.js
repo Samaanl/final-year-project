@@ -47,9 +47,9 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing
 //Delete feature in project name
 app.delete("/deleteProject/:projectName", (req, res) => {
   const projectName = req.params.projectName;
-  
+
   const deleteQuery = `DELETE FROM users WHERE proj = ?`;
-  
+
   db.run(deleteQuery, [projectName], (err) => {
     if (err) {
       console.error("Error deleting project:", err.message);
@@ -59,7 +59,6 @@ app.delete("/deleteProject/:projectName", (req, res) => {
     res.json({ message: "Project deleted successfully" });
   });
 });
-
 
 // Middleware to set CORS headers
 app.use((req, res, next) => {
@@ -114,46 +113,52 @@ app.get("/getData/:projectName", (req, res) => {
   });
 });
 
+// In server.js
 app.post("/insert", (req, res) => {
-  const { proj, nodeName, x, y } = req.body;
+  const { projectName, components } = req.body;
 
-  console.log("proj", proj);
+  console.log("Saving project:", projectName);
+
+  if (!projectName) {
+    return res.status(400).json({ error: "Project name is required" });
+  }
 
   // First delete existing rows for this project
   const deleteQuery = `DELETE FROM users WHERE proj = ?`;
 
-  db.run(deleteQuery, [proj[0]], (err) => {
+  db.run(deleteQuery, [projectName], (err) => {
     if (err) {
       console.error("Error deleting existing rows:", err.message);
       res.status(500).json({ error: "Failed to delete existing rows" });
       return;
     }
 
-    // Build placeholders like (?,?,?) for each item
-    const placeholders = nodeName.map(() => "(?,?,?,?)").join(", ");
-
-    // Flatten arrays into a single values array
-    const values = [];
-    for (let i = 0; i < nodeName.length; i++) {
-      values.push(proj[0], nodeName[i], String(x[i]), String(y[i]));
+    if (!components || components.length === 0) {
+      // No components to save, but we've cleared existing data, so return success
+      return res.status(200).json({ message: "Project cleared" });
     }
 
-    const insertQuery = `
-      INSERT INTO users (proj,name, x, y)
-      VALUES ${placeholders};
-    `;
+    // Build placeholders like (?,?,?,?) for each component
+    const placeholders = components.map(() => "(?,?,?,?)").join(", ");
 
-    console.log("insertQuery", insertQuery);
-    console.log("values", values);
+    // Create SQL query
+    const insertQuery = `INSERT INTO users (proj, nodeName, x, y) VALUES ${placeholders}`;
 
-    db.run(insertQuery, values, (err) => {
+    // Flatten component data for SQL parameters
+    const values = [];
+    for (const component of components) {
+      values.push(projectName, component.name, component.x, component.y);
+    }
+
+    // Execute insert
+    db.run(insertQuery, values, function (err) {
       if (err) {
         console.error("Error inserting data:", err.message);
         res.status(500).json({ error: "Failed to insert data" });
         return;
       }
 
-      res.json({ message: `Data updated successfully at ${__dirname}` });
+      res.status(200).json({ message: "Data saved successfully" });
     });
   });
 });
