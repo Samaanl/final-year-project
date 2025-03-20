@@ -234,7 +234,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newPageName, setNewPageName] = useState("");
   const [isEditorVisible, setIsEditorVisible] = useState(false); // Control editor visibility
-  const [editorWidth, setEditorWidth] = useState(40); // Editor width as percentage
+  const [editorWidth, setEditorWidth] = useState(35); // Editor width as percentage
   const [isResizing, setIsResizing] = useState(false); // Track resize state
 
   const [isProjectBrowserVisible, setIsProjectBrowserVisible] = useState(false);
@@ -2988,7 +2988,7 @@ export default function App() {
                 }}
                 position="bottom-right"
               />
-              <Background variant="lines" gap={16} size={1} color="#b5deb5" />
+              <Background variant="dots" gap={16} size={2} color="#A9A9A9" />
               <ColorPicker />
             </ReactFlow>
             <p>Active Nodes: {getActiveNodesCount()}</p>

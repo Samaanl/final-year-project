@@ -11,7 +11,7 @@ export function Breadboard(props) {
 
   const style = {
     width: "1000px", // Restored original width
-    height: "250px", // Restored original height
+    height: "360px", // Restored original height
     fontFamily: "Arial, sans-serif",
     backgroundColor: "#f4f4f4",
     display: "flex",
@@ -38,7 +38,7 @@ export function Breadboard(props) {
           type="source"
           position={Position.Left}
           id={`handle-source-${section}-${railType}-rail-hole-${index}`}
-          className="w-2 h-2 bg-black-500 rounded-full absolute"
+          className="w-3 h-3 bg-black-500 rounded-full absolute"
           style={{
             top: '50%',
             left: '100%',
@@ -49,7 +49,7 @@ export function Breadboard(props) {
           type="target"
           position={Position.Left}
           id={`handle-target-${section}-${railType}-rail-hole-${index}`}
-          className="w-2 h-2 bg-black-500 rounded-full absolute"
+          className="w-3 h-3 bg-black-500 rounded-full absolute"
           style={{
             top: '50%',
             left: '100%',
@@ -74,7 +74,7 @@ export function Breadboard(props) {
               type="source"
               position={Position.Left}
               id={`handle-source-main-hole-${rowIndex}-${colIndex}`}
-              className="w-2 h-2 bg-black-500 rounded-full absolute"
+              className="w-3 h-3 bg-black-500 rounded-full absolute"
               data-column={colIndex}
               style={{
                 top: '50%',
@@ -86,7 +86,7 @@ export function Breadboard(props) {
               type="target"
               position={Position.Left}
               id={`handle-target-main-hole-${rowIndex}-${colIndex}`}
-              className="w-2 h-2 bg-black-500 rounded-full absolute"
+              className="w-3 h-3 bg-black-500 rounded-full absolute"
               data-column={colIndex}
               style={{
                 top: '50%',

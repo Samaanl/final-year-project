@@ -332,6 +332,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
           style={{
             left: "-2px",
             top: "116px",
+            zIndex: 10,
           }}
         />
         <Handle
@@ -342,6 +343,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
           style={{
             left: "-2px",
             top: "116px",
+            zIndex: 10,
           }}
         />
         <Handle
@@ -352,6 +354,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
           style={{
             right: "-2px",
             top: "100px",
+            zIndex: 10,
           }}
         />
         <Handle
@@ -362,6 +365,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
           style={{
             right: "-2px",
             top: "100px",
+            zIndex: 10,
           }}
         />
 
