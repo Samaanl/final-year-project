@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#line 1 "C:\\Users\\saiee\\Desktop\\complete\\main1\\src\\temp\\sketch\\sketch.ino"
+#line 1 "E:\\Ty_Project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 // Arduino code to blink two LEDs alternately
 // Connect one LED to pin 12 and another to pin 13
 
@@ -7,11 +7,11 @@ int led1 = 12;  // First LED connected to digital pin 12
 int led2 = 13;  // Second LED connected to digital pin 13
 int delayTime = 50;  // Delay in milliseconds
 
-#line 8 "C:\\Users\\saiee\\Desktop\\complete\\main1\\src\\temp\\sketch\\sketch.ino"
+#line 8 "E:\\Ty_Project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup();
-#line 14 "C:\\Users\\saiee\\Desktop\\complete\\main1\\src\\temp\\sketch\\sketch.ino"
+#line 14 "E:\\Ty_Project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void loop();
-#line 8 "C:\\Users\\saiee\\Desktop\\complete\\main1\\src\\temp\\sketch\\sketch.ino"
+#line 8 "E:\\Ty_Project\\final-year-project\\src\\temp\\sketch\\sketch.ino"
 void setup() {
   // Initialize both digital pins as outputs
   pinMode(led1, OUTPUT);
