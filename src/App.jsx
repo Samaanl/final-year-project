@@ -6,7 +6,6 @@ import React, {
   useMemo,
 } from "react";
 import { Button, Drawer, Modal, TextInput } from "flowbite-react";
-
 import { v4 as uuidv4 } from "uuid";
 import { parse } from "intel-hex";
 import { Buffer } from "buffer";
