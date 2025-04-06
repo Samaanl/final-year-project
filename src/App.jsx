@@ -438,6 +438,198 @@ export default function App() {
       const [breadboardColumnConnections, setBreadboardColumnConnections] =
         useState({});
 
+      // Add dedicated function to update rail connections
+      const updateBreadboardRailConnections = useCallback(() => {
+        console.log("Updating breadboard rail connections...");
+        const breadboardNode = nodes.find(
+          (n) => n.data.component.type.name === "Breadboard"
+        );
+        const arduinoNode = nodes.find(
+          (n) => n.data.component.type.name === "ArduinoUnoR3"
+        );
+        const resistors = nodes.filter(
+          (n) => n.data.component.type.name === "Resistor"
+        );
+        
+        // Skip if key components are missing
+        if (!breadboardNode || !arduinoNode) return;
+        
+        // Create a new object for rail connections
+        const newRailConnections = {
+          "top-red": null,
+          "top-blue": null,
+          "bottom-red": null,
+          "bottom-blue": null,
+        };
+        
+        // FIRST: Check direct Arduino to breadboard rail connections
+        edges.forEach(edge => {
+          if ((edge.source === arduinoNode.id && edge.target === breadboardNode.id) ||
+              (edge.source === breadboardNode.id && edge.target === arduinoNode.id)) {
+              
+            const breadboardHandle = edge.source === breadboardNode.id ? 
+              edge.sourceHandle : edge.targetHandle;
+            const arduinoHandle = edge.source === arduinoNode.id ? 
+              edge.sourceHandle : edge.targetHandle;
+              
+            if (breadboardHandle?.includes("rail")) {
+              if (breadboardHandle.includes("top-red") && arduinoHandle.includes("digital")) {
+                const pinMatch = arduinoHandle.match(/\d+/);
+                if (pinMatch) {
+                  newRailConnections["top-red"] = parseInt(pinMatch[0]);
+                  console.log(`Direct rail connection: top-red to pin ${newRailConnections["top-red"]}`);
+                }
+              } else if (breadboardHandle.includes("bottom-red") && arduinoHandle.includes("digital")) {
+                const pinMatch = arduinoHandle.match(/\d+/);
+                if (pinMatch) {
+                  newRailConnections["bottom-red"] = parseInt(pinMatch[0]);
+                  console.log(`Direct rail connection: bottom-red to pin ${newRailConnections["bottom-red"]}`);
+                }
+              } else if (breadboardHandle.includes("top-blue") && arduinoHandle.includes("GND")) {
+                newRailConnections["top-blue"] = "GND";
+              } else if (breadboardHandle.includes("bottom-blue") && arduinoHandle.includes("GND")) {
+                newRailConnections["bottom-blue"] = "GND";
+              }
+            }
+          }
+        });
+        
+        // SECOND: Check Arduino -> resistor -> rail connections
+        resistors.forEach(resistor => {
+          const resistorConnections = edges.filter(edge => 
+            edge.source === resistor.id || edge.target === resistor.id);
+          
+          // Find connection to Arduino
+          const arduinoConnection = resistorConnections.find(edge => {
+            const otherNodeId = edge.source === resistor.id ? edge.target : edge.source;
+            return otherNodeId === arduinoNode.id;
+          });
+          
+          if (arduinoConnection) {
+            const arduinoHandle = arduinoConnection.source === arduinoNode.id ? 
+              arduinoConnection.sourceHandle : arduinoConnection.targetHandle;
+              
+            if (arduinoHandle.includes("digital")) {
+              const pinMatch = arduinoHandle.match(/\d+/);
+              if (pinMatch) {
+                const pinNumber = parseInt(pinMatch[0]);
+                
+                // Find breadboard connection for this resistor
+                resistorConnections.forEach(edge => {
+                  const otherNodeId = edge.source === resistor.id ? edge.target : edge.source;
+                  const otherNode = nodes.find(n => n.id === otherNodeId);
+                  
+                  if (otherNode?.data.component.type.name === "Breadboard") {
+                    const handle = edge.source === otherNodeId ? 
+                      edge.sourceHandle : edge.targetHandle;
+                      
+                    if (handle?.includes("rail")) {
+                      if (handle.includes("top-red")) {
+                        newRailConnections["top-red"] = pinNumber;
+                        console.log(`Arduino -> resistor -> top-red rail: pin ${pinNumber}`);
+                      } else if (handle.includes("bottom-red")) {
+                        newRailConnections["bottom-red"] = pinNumber;
+                        console.log(`Arduino -> resistor -> bottom-red rail: pin ${pinNumber}`);
+                      }
+                    }
+                  }
+                });
+              }
+            }
+          }
+        });
+        
+        // THIRD: Check complex paths: Arduino -> breadboard -> resistor -> rail
+        resistors.forEach(resistor => {
+          // Get all connections for this resistor
+          const resistorConns = edges.filter(edge => 
+            edge.source === resistor.id || edge.target === resistor.id);
+            
+          // Find connection to any rail
+          const railConn = resistorConns.find(edge => {
+            const breadboardId = edge.source === resistor.id ? edge.target : edge.source;
+            if (breadboardId === breadboardNode.id) {
+              const handle = edge.source === breadboardId ? 
+                edge.sourceHandle : edge.targetHandle;
+              return handle?.includes("rail");
+            }
+            return false;
+          });
+          
+          // Find connection to main breadboard (not rail)
+          const mainBreadboardConn = resistorConns.find(edge => {
+            const breadboardId = edge.source === resistor.id ? edge.target : edge.source;
+            if (breadboardId === breadboardNode.id) {
+              const handle = edge.source === breadboardId ? 
+                edge.sourceHandle : edge.targetHandle;
+              return handle?.includes("main-hole");
+            }
+            return false;
+          });
+          
+          if (railConn && mainBreadboardConn) {
+            const railHandle = railConn.source === breadboardNode.id ? 
+              railConn.sourceHandle : railConn.targetHandle;
+              
+            const mainHandle = mainBreadboardConn.source === breadboardNode.id ? 
+              mainBreadboardConn.sourceHandle : mainBreadboardConn.targetHandle;
+              
+            if (mainHandle) {
+              const mainColMatch = mainHandle.match(/main-hole-\d+-(\d+)/);
+              
+              if (mainColMatch) {
+                const column = parseInt(mainColMatch[1]);
+                
+                // Find Arduino connection to this column
+                const arduinoToBreadboard = edges.find(edge => {
+                  if ((edge.source === arduinoNode.id && edge.target === breadboardNode.id) ||
+                      (edge.source === breadboardNode.id && edge.target === arduinoNode.id)) {
+                      
+                    const bbHandle = edge.source === breadboardNode.id ? 
+                      edge.sourceHandle : edge.targetHandle;
+                      
+                    if (bbHandle?.includes("main-hole")) {
+                      const bbColMatch = bbHandle.match(/main-hole-\d+-(\d+)/);
+                      return bbColMatch && parseInt(bbColMatch[1]) === column;
+                    }
+                  }
+                  return false;
+                });
+                
+                if (arduinoToBreadboard) {
+                  const arduinoHandle = arduinoToBreadboard.source === arduinoNode.id ? 
+                    arduinoToBreadboard.sourceHandle : arduinoToBreadboard.targetHandle;
+                    
+                  if (arduinoHandle?.includes("digital")) {
+                    const pinMatch = arduinoHandle.match(/\d+/);
+                    if (pinMatch) {
+                      const pin = parseInt(pinMatch[0]);
+                      
+                      if (railHandle?.includes("top-red")) {
+                        newRailConnections["top-red"] = pin;
+                        console.log(`Complex path found: Arduino -> breadboard -> resistor -> top-red rail: pin ${pin}`);
+                      } else if (railHandle?.includes("bottom-red")) {
+                        newRailConnections["bottom-red"] = pin;
+                        console.log(`Complex path found: Arduino -> breadboard -> resistor -> bottom-red rail: pin ${pin}`);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+        
+        // Update the state with new rail connections
+        setBreadboardRailConnections(prev => {
+          if (JSON.stringify(prev) !== JSON.stringify(newRailConnections)) {
+            console.log("Updating rail connections:", newRailConnections);
+            return newRailConnections;
+          }
+          return prev;
+        });
+      }, [nodes, edges]);
+
       // Function to update the breadboard column to Arduino pin mapping
       const updateBreadboardColumnConnections = useCallback(() => {
         const newColumnConnections = {};
@@ -680,7 +872,9 @@ export default function App() {
       // Run this effect whenever edges or nodes change
       useEffect(() => {
         updateBreadboardColumnConnections();
-      }, [edges, nodes, updateBreadboardColumnConnections]);
+        // CRITICAL FIX: Also update rail connections when edges or nodes change
+        updateBreadboardRailConnections();
+      }, [edges, nodes, updateBreadboardColumnConnections, updateBreadboardRailConnections]);
 
       const onConnect = useCallback(
         (params) => {
