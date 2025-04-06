@@ -1,7 +1,7 @@
 // Arduino code to blink two LEDs alternately
 // Connect one LED to pin 12 and another to pin 13
 
-int led1 = 7;  // First LED connected to digital pin 12
+int led1 = 12;  // First LED connected to digital pin 12
 int led2 = 13;  // Second LED connected to digital pin 13
 int delayTime = 50;  // Delay in milliseconds
 
