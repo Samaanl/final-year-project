@@ -668,6 +668,9 @@ export default function App() {
 
         // Update state with new mappings
         setBreadboardColumnConnections(newColumnConnections);
+        // CRITICAL FIX: Update the rail connections state too
+        setBreadboardRailConnections({...breadboardRailConnections});
+        console.log("Updated breadboard rail connections:", breadboardRailConnections);
         console.log(
           "Updated breadboard column connections:",
           newColumnConnections
@@ -932,14 +935,9 @@ export default function App() {
           (n) => n.data.component.type.name === "ArduinoUnoR3"
         );
 
-        // Create maps to track which rail is connected to which Arduino pin
-        const breadboardRailConnections = {
-          "top-red": null,
-          "top-blue": null,
-          "bottom-red": null,
-          "bottom-blue": null,
-        };
-
+        // CRITICAL FIX: Remove local breadboardRailConnections object 
+        // and use the state variable instead
+        
         // If both breadboard and Arduino exist, check for connections between them
         if (breadboardNode && arduinoNode) {
           // Find all connections between Arduino and breadboard
@@ -973,27 +971,40 @@ export default function App() {
                 breadboardHandle.includes("top") &&
                 breadboardHandle.includes("red")
               ) {
-                breadboardRailConnections["top-red"] = pinNumber;
+                // Update the state object directly
+                setBreadboardRailConnections(prev => ({
+                  ...prev,
+                  "top-red": pinNumber
+                }));
               } else if (
                 breadboardHandle.includes("top") &&
                 breadboardHandle.includes("blue")
               ) {
                 // For blue rail, check if it's connected to any GND pin
                 if (arduinoHandle.includes("GND")) {
-                  breadboardRailConnections["top-blue"] = "GND";
+                  setBreadboardRailConnections(prev => ({
+                    ...prev,
+                    "top-blue": "GND"
+                  }));
                 }
               } else if (
                 breadboardHandle.includes("bottom") &&
                 breadboardHandle.includes("red")
               ) {
-                breadboardRailConnections["bottom-red"] = pinNumber;
+                setBreadboardRailConnections(prev => ({
+                  ...prev,
+                  "bottom-red": pinNumber
+                }));
               } else if (
                 breadboardHandle.includes("bottom") &&
                 breadboardHandle.includes("blue")
               ) {
                 // For blue rail, check if it's connected to any GND pin
                 if (arduinoHandle.includes("GND")) {
-                  breadboardRailConnections["bottom-blue"] = "GND";
+                  setBreadboardRailConnections(prev => ({
+                    ...prev,
+                    "bottom-blue": "GND"
+                  }));
                 }
               }
             }
@@ -1321,7 +1332,9 @@ export default function App() {
                         breadboardHandle.includes("top") &&
                         breadboardHandle.includes("red")
                       ) {
+                        // CRITICAL FIX: Log and assign the pin number properly
                         pinNumber = breadboardRailConnections["top-red"];
+                        console.log(`LED ${node.id} is connected to top red rail with Arduino pin ${pinNumber}`);
                         connectionPath.push(
                           `Set pin number to ${pinNumber} from top red rail`
                         );
@@ -1329,7 +1342,9 @@ export default function App() {
                         breadboardHandle.includes("bottom") &&
                         breadboardHandle.includes("red")
                       ) {
+                        // CRITICAL FIX: Log and assign the pin number properly
                         pinNumber = breadboardRailConnections["bottom-red"];
+                        console.log(`LED ${node.id} is connected to bottom red rail with Arduino pin ${pinNumber}`);
                         connectionPath.push(
                           `Set pin number to ${pinNumber} from bottom red rail`
                         );
@@ -2596,11 +2611,26 @@ export default function App() {
                 actualPinState ? "HIGH" : "LOW"
               );
 
+              // Add debug for rail connections
+              if (pinNumber !== undefined) {
+                console.log(`DEBUG: LED ${node.id} assigned pin ${pinNumber}`);
+              } else {
+                console.log(`DEBUG: LED ${node.id} has NO pin assigned. Rail connections:`, breadboardRailConnections);
+              }
+
+              // Return the updated node with connection info
               return {
                 ...node,
                 data: {
                   ...node.data,
                   component: newComponent,
+                  pinState: pinNumber !== undefined ? pinState[pinNumber] : false,
+                  // CRITICAL FIX: Set pin even if undefined to trigger proper component updates
+                  pin: pinNumber !== undefined ? pinNumber : null,
+                  isConnected: connectedResistor !== undefined || pinNumber !== undefined,
+                  hardwarePinState: pinNumber !== undefined ? pinState[pinNumber] : false,
+                  connectionPath,
+                  pinStateVersion,
                 },
               };
             }
