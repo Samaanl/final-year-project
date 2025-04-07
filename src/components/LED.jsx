@@ -89,7 +89,7 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     // IMPORTANT: Only check the hardware state for this specific pin, ignore all others
     const thisLEDPinState = realPinStatesRef?.current?.[pin] || false;
     
-    console.log(`LED ${id} checking hardware state ONLY for pin ${pin}: ${thisLEDPinState}`);
+    console.log(`LED ${id} pin ${pin} hardware state is now: ${thisLEDPinState}`);
     
     if (prevPinState.current !== thisLEDPinState) {
       prevPinState.current = thisLEDPinState;
@@ -142,14 +142,14 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
       }
       
       // If disconnected or no pin, reset state
-      if (!isConnected || pin === undefined) {
+      if (!isConnected || pin === null || pin === undefined) {
         setLedState(false);
         prevPinState.current = false;
         return;
       }
       
       // ONLY get the state for THIS specific pin
-      const thisPinState = pin !== undefined ? (realPinStatesRef?.current?.[pin] || false) : false;
+      const thisPinState = pin !== undefined && pin !== null ? (realPinStatesRef?.current?.[pin] || false) : false;
       console.log(`LED ${id} new pin ${pin} state: ${thisPinState} (ISOLATED)`);
       
       // Update component state
