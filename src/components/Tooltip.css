@@ -1,6 +1,8 @@
 .tooltip-container {
     position: relative;
-    display: inline-block;
+    display:block;
+    cursor: pointer;
+
   }
 
     .tooltip-text {
@@ -10,6 +12,8 @@
     text-align: center;
     border-radius: 12px;
     padding: 10px;
+    width: 500px;
+    height: 100px;
     position: absolute;
     z-index: 1;
     bottom: 0%; /* Position above the element */
@@ -21,13 +25,16 @@
     font-family: 'Arial', sans-serif;
     font-size: 14px;
     border: 2px solid #ccc;
-    white-space: nowrap;
+    white-space: normal; 
+    display: flex; 
+    align-items: center;
+    justify-content: center;
   }
   
   .tooltip-container:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
-    transform: translateX(-50%) translateY(-10px);
+    transform: translateX(-30%) translateY(-10px);
   }
   
   .tooltip-text::after {
@@ -35,7 +42,7 @@
     position: absolute;
     top: 100%; /* Arrow at the bottom */
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-30%);
     border-width: 6px;
     border-style: solid;
     border-color: #f0f0f0 transparent transparent transparent;

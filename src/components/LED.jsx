@@ -320,9 +320,10 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   return (
     <Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">
       <div
-        className={`relative flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl mx-4 w-3 ${isConnected && hardwarePinState ? 'active' : ''}`}
+        className="relative flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:shadow-2xl mx-4 w-3"
         style={style}
-        ref={bulbRef}
+        ref={bulbRef} // Add reference to LED bulb body
+        onClick={handleClick} // Handle click event
       >
         <Handle
           type="target"

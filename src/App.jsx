@@ -3213,13 +3213,17 @@ export default function App() {
               {isPanelCollapsed ? "→" : "←"}
             </button>
             <h3 className="components-header">Components</h3>
+            
             <button
               onClick={() => addNode(LED, 100, 100, { x: 0, y: 0 }, true)}
               className="component-button"
             >
               <FaLightbulb style={{ marginRight: "5px" }} />
-              {!isPanelCollapsed && <span>Add LED</span>}
+              {!isPanelCollapsed && <span><Tooltip text="LED: A Light Emitting Diode (LED) is a semiconductor device that emits light when an electric current passes through it.">Add LED</Tooltip></span>}
             </button>
+            
+
+            
             <button
               onClick={() =>
                 addNode(
@@ -3233,15 +3237,21 @@ export default function App() {
               className="component-button"
             >
               <FaMicrochip style={{ marginRight: "5px" }} />
-              {!isPanelCollapsed && <span>Add Resistor</span>}
+              {!isPanelCollapsed && <span><Tooltip text="Resistor: A resistor is a passive electrical component that limits or regulates the flow of electrical current in an electronic circuit.">Add Resistor</Tooltip></span>}
             </button>
+            
+
+            
             <button
               onClick={() => addNode(Breadboard, 1000, 250, { x: 100, y: 100 })}
               className="component-button"
             >
               <FaBreadSlice style={{ marginRight: "5px" }} />
-              {!isPanelCollapsed && <span>Add Breadboard</span>}
+              {!isPanelCollapsed && <span><Tooltip text="Breadboard: Used to prototype electronic circuits. Red rails (+) for positive voltage, blue rails (-) for ground. Middle section contains tie points for connecting components.">Add Breadboard</Tooltip></span>}
             </button>
+            
+
+            
             <button
               onClick={() =>
                 addNode(ArduinoUnoR3, 200, 150, { x: 100, y: 100 })
@@ -3249,7 +3259,7 @@ export default function App() {
               className="component-button"
             >
               <FaMicrochip style={{ marginRight: "5px" }} />
-              {!isPanelCollapsed && <span>Add Arduino Uno</span>}
+              {!isPanelCollapsed && <span><Tooltip text="Arduino Uno R3: A microcontroller board based on the ATmega328P. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz quartz crystal, a USB connection, a power jack, an ICSP header, and a reset button.">Add Arduino Uno</Tooltip></span>}
             </button>
             <button
               onClick={() => {
@@ -3365,7 +3375,7 @@ export default function App() {
                 }}
                 position="bottom-right"
               />
-              <Background variant="dots" gap={16} size={2} color="#A9A9A9" />
+              <Background variant="lines" gap={16} size={2} color="#b5deb5" />
               <ColorPicker />
             </ReactFlow>
             <p>Active Nodes: {getActiveNodesCount()}</p>
@@ -3802,6 +3812,7 @@ export default function App() {
         <div style={{ width: "100vw", height: "100vh" }}>
           <div className="toolbar">
             <div className="flex items-center gap-2">
+  
               <button
                 onClick={handleNewPageClick}
                 className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
@@ -3809,7 +3820,9 @@ export default function App() {
               >
                 <MdNoteAdd className="mr-1" /> New Page
               </button>
+            
 
+            
               <button
                 onClick={() =>
                   setIsProjectBrowserVisible(!isProjectBrowserVisible)
@@ -3820,7 +3833,9 @@ export default function App() {
                 <FaFolder className="mr-1" />{" "}
                 {isProjectBrowserVisible ? "Hide Projects" : "Projects"}
               </button>
+            
 
+    
               <button
                 onClick={() => setIsEditorVisible(!isEditorVisible)}
                 className="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 
@@ -3828,6 +3843,7 @@ export default function App() {
               >
                 {isEditorVisible ? "Hide Editor" : "Show Editor"}
               </button>
+            
             </div>
           </div>
 
