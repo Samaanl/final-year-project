@@ -54,9 +54,9 @@ const ColorPicker = ({ id, color, onChange, onClose, position }) => {
   );
 };
 
-const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false, pin, pinStateVersion, realPinStatesRef }) => {
+const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isConnected = false, pin, pinStateVersion, realPinStatesRef, color: initialColor, colorIndex: initialColorIndex, colors: initialColors }) => {
   const [size] = useState({ width: 48, height: 64 });
-  const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || "green");
+  const [color, setColor] = useState(localStorage.getItem(`ledColor-${id}`) || initialColor || "red");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ x: 0, y: 0 });
   const bulbRef = useRef(null);
@@ -64,6 +64,10 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkIntervalRef = useRef(null);
   const prevPinState = useRef(false);
+  
+  // Add color cycle state
+  const [colorIndex, setColorIndex] = useState(initialColorIndex || 0);
+  const colors = initialColors || ["red", "green", "yellow"];
   
   // Critical fix: Use layout effect to ensure hardware pin state is checked before painting
   useLayoutEffect(() => {
@@ -223,15 +227,24 @@ const LED = ({ id, pos, onDelete, brightness, pinState, shouldBlink = false, isC
     setShowColorPicker(true);
   }, []);
 
-  // Handle left-click to also show color picker
+  // Handle left-click to cycle colors
   const handleClick = (e) => {
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setPickerPosition({
-      x: rect.left + (rect.width / 2) + window.scrollX,
-      y: rect.bottom + window.scrollY
-    });
-    setShowColorPicker(prev => !prev);
+    e.stopPropagation();
+    
+    // Cycle through colors
+    const nextColorIndex = (colorIndex + 1) % colors.length;
+    const nextColor = colors[nextColorIndex];
+    
+    setColorIndex(nextColorIndex);
+    setColor(nextColor);
+    localStorage.setItem(`ledColor-${id}`, nextColor);
+    
+    // If currently blinking, restart the blink effect with new color
+    if (isBlinking) {
+      clearInterval(blinkIntervalRef.current);
+      startBlinking();
+    }
   };
 
   // Handle color change

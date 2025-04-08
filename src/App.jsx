@@ -1112,6 +1112,9 @@ export default function App() {
         setResistorValues(storedValues);
       }, []);
 
+      const [ledColorIndex, setLedColorIndex] = useState(0); // Add counter for LED colors
+      const colors = ["red", "green", "yellow"]; // Define color sequence
+
       const addNode = (
         Component,
         width,
@@ -1122,7 +1125,21 @@ export default function App() {
       ) => {
         const position = { x: pos.x, y: pos.y };
         const isLEDComponent = Component.name === "LED";
-        const uniqueId = uuidv4(); // Generate a unique ID using uuid
+        const uniqueId = uuidv4();
+
+        // Add sequential color cycling for LEDs
+        if (isLEDComponent) {
+          const currentColor = colors[ledColorIndex];
+          console.log(`Creating LED with color: ${currentColor} (index: ${ledColorIndex})`); // Debug log
+          initialData = {
+            ...initialData,
+            color: currentColor,
+            colorIndex: ledColorIndex,
+            colors: colors
+          };
+          // Update the color index for the next LED
+          setLedColorIndex((prev) => (prev + 1) % colors.length);
+        }
 
         const newNode = {
           id: uniqueId,
